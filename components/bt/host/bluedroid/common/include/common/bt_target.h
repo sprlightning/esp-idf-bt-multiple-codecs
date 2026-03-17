@@ -87,6 +87,9 @@
 #if (UC_BT_A2DP_AAC_DECODER_ENABLED == TRUE)
 #define AAC_DEC_INCLUDED           TRUE
 #endif /* (UC_BT_A2DP_AAC_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_LHDCV5_DECODER_ENABLED == TRUE)
+#define LHDCV5_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_LHDCV5_DECODER_ENABLED == TRUE) */
 #define BTC_AV_SRC_INCLUDED         TRUE
 #define SBC_ENC_INCLUDED            TRUE
 #endif /* UC_BT_A2DP_ENABLED */
@@ -1924,6 +1927,11 @@
 # else
 #  define AVDT_AAC_SEPS	(0)
 # endif /* CONFIG_BT_A2DP_AAC_DECODER */
+# ifdef CONFIG_BT_A2DP_LHDCV5_DECODER
+#  define AVDT_LHDCV5_SEPS	(1)
+# else
+#  define AVDT_LHDCV5_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_LHDCV5_DECODER */
 
 #define AVDT_NUM_SEPS      (3 \
 							+ AVDT_APTX_SEPS \
@@ -1931,6 +1939,7 @@
 							+ AVDT_OPUS_SEPS \
 							+ AVDT_LC3PLUS_SEPS \
 							+ AVDT_AAC_SEPS \
+							+ AVDT_LHDCV5_SEPS \
 							)
 #endif
 
