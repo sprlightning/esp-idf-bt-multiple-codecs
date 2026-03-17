@@ -88,7 +88,12 @@ enum {
 #if CONFIG_SPIRAM
 #define A2DP_TASK_STACK_SIZE             (50 * 1024)
 #else
+#if BTC_TASK_STACK_SIZE
 #define A2DP_TASK_STACK_SIZE             (BTC_TASK_STACK_SIZE)
+#else
+// 未定义时使用保守值16kB，根据实际情况调整，12KB~20KB，注意总RAM约520KB
+#define A2DP_TASK_STACK_SIZE             (16 * 1024)
+#endif
 #endif
 #define A2DP_TASK_PRIO                   (BT_TASK_MAX_PRIORITIES - 6)
 #define A2DP_TASK_PINNED_TO_CORE         (1)
