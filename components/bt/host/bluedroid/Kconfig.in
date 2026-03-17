@@ -61,6 +61,13 @@ config BT_A2DP_ENABLE
     help
         Advanced Audio Distrubution Profile
 
+config BT_A2DP_SBC_DECODER
+    bool "SBC decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP SBC decoder
+
 config BT_A2DP_APTX_DECODER
     bool "aptX decoder"
     depends on BT_A2DP_ENABLE
@@ -96,6 +103,48 @@ config BT_A2DP_AAC_DECODER
     select SPIRAM
     help
         A2DP AAC decoder
+		
+config BT_A2DP_LHDCV5_DECODER
+    bool "LHDCV5 decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LHDCV5 decoder
+
+config BT_A2DP_LHDCV3_DECODER
+    bool "LHDCV3 decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LHDCV3 decoder
+
+config BT_A2DP_LHDCV2_DECODER
+    bool "LHDCV2 decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LHDCV2 decoder
+
+config BT_A2DP_LHDCV1_DECODER
+    bool "LHDCV1 decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LHDCV1 decoder
+
+config BT_A2DP_LHDC_LL_DECODER
+    bool "LHDC_LL decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LHDC_LL decoder
+		
+config BT_A2DP_MIHC_DECODER
+    bool "MIHC decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP MIHC decoder
 
 config BT_SPP_ENABLED
     bool "SPP"
