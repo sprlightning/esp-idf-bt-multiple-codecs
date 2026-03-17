@@ -1,19 +1,31 @@
-/*
+/**
+ * SPDX-FileCopyrightText: 2016 The Android Open Source Project
+ * 
  * SPDX-License-Identifier: Apache-2.0
+ * 
+ * 本文件依赖由hegdi和Thealexbarney开发的外部库libldacdec中的ldacdec.h
+ * O2C14的ldacBT.h仅用于补充clean up函数
+ * 本文件效果不好，播放卡顿，建议用a2dp_vendor_ldacbt_decoder.c取代本文件（CMakeLists.txt中只可启用一个）
  */
 
 #include "common/bt_trace.h"
 #include "stack/a2dp_vendor_ldac.h"
 #include "stack/a2dp_vendor_ldac_constants.h"
 #include "stack/a2dp_vendor_ldac_decoder.h"
-#include "ldacdec.h"
+#include "ldacdec.h" // 由hegdi与Thealexbarney开发的ldac解码器
+#include "ldacBT.h" // O2C14开发的ldac解码器
 
 
 #if (defined(LDAC_DEC_INCLUDED) && LDAC_DEC_INCLUDED == TRUE)
 
 typedef struct {
-  ldacdec_t decoder;
-  decoded_data_callback_t decode_callback;
+    ldacdec_t decoder; // hegdi与Thealexbarney的解码器的结构体
+
+    HANDLE_LDAC_BT ldac_handle; // O2C14的ldac解码器的句柄
+    bool has_ldac_handle;
+    LDACBT_SMPL_FMT_T pcm_fmt; // O2C14的ldac解码器的pcm格式
+
+    decoded_data_callback_t decode_callback; // 解码回调函数
 } tA2DP_LDAC_DECODER_CB;
 
 static tA2DP_LDAC_DECODER_CB a2dp_ldac_decoder_cb;
@@ -29,6 +41,17 @@ bool a2dp_ldac_decoder_init(decoded_data_callback_t decode_callback) {
     }
     a2dp_ldac_decoder_cb.decode_callback = decode_callback;
     return true;
+}
+
+void a2dp_ldac_decoder_cleanup() {
+    if (a2dp_ldac_decoder_cb.has_ldac_handle) {
+        HANDLE_LDAC_BT hndl = a2dp_ldac_decoder_cb.ldac_handle;
+        ldacBT_close_handle(hndl);
+        ldacBT_free_handle(hndl);
+    }
+
+    memset(&a2dp_ldac_decoder_cb, 0, sizeof(a2dp_ldac_decoder_cb));
+    a2dp_ldac_decoder_cb.has_ldac_handle = false;
 }
 
 ssize_t a2dp_ldac_decoder_decode_packet_header(BT_HDR* p_buf) {
