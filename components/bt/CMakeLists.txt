@@ -751,17 +751,16 @@ endif()
 if(CONFIG_BT_A2DP_LDAC_DECODER)
     list(APPEND priv_include_dirs host/bluedroid/external/libldac-dec/src
                                   host/bluedroid/external/libldac-dec/inc
-								  host/bluedroid/external/libldacdec/inc
-								  host/bluedroid/external/libldacdec/include)
+								  host/bluedroid/external/libldacdec)
     list(APPEND ldacbt_dec_srcs "host/bluedroid/external/libldac-dec/src/ldacBT.c"
                                 "host/bluedroid/external/libldac-dec/src/ldaclib.c")
-	list(APPEND ldac_dec_srcs "host/bluedroid/external/libldacdec/src/bit_allocation.c"
-							  "host/bluedroid/external/libldacdec/src/bit_reader.c"
-							  "host/bluedroid/external/libldacdec/src/huffCodes.c"
-							  "host/bluedroid/external/libldacdec/src/imdct.c"
-							  "host/bluedroid/external/libldacdec/src/libldacdec.c"
-							  "host/bluedroid/external/libldacdec/src/spectrum.c"
-							  "host/bluedroid/external/libldacdec/src/utility.c")
+	list(APPEND ldac_dec_srcs "host/bluedroid/external/libldacdec/bit_allocation.c"
+							  "host/bluedroid/external/libldacdec/bit_reader.c"
+							  "host/bluedroid/external/libldacdec/huffCodes.c"
+							  "host/bluedroid/external/libldacdec/imdct.c"
+							  "host/bluedroid/external/libldacdec/libldacdec.c"
+							  "host/bluedroid/external/libldacdec/spectrum.c"
+							  "host/bluedroid/external/libldacdec/utility.c")
     list(APPEND srcs ${ldacbt_dec_srcs})
 	list(APPEND srcs ${ldac_dec_srcs})
 
@@ -866,22 +865,6 @@ if(CONFIG_BT_A2DP_LHDCV5_DECODER)
 endif()
 
 if(CONFIG_BT_A2DP_MIHC_DECODER)
-    list(APPEND priv_include_dirs host/bluedroid/external/libldac-dec/src
-                                  host/bluedroid/external/libldac-dec/inc
-								  host/bluedroid/external/libldacdec/inc
-								  host/bluedroid/external/libldacdec/include)
-    list(APPEND ldacbt_dec_srcs "host/bluedroid/external/libldac-dec/src/ldacBT.c"
-                                "host/bluedroid/external/libldac-dec/src/ldaclib.c")
-	list(APPEND ldac_dec_srcs "host/bluedroid/external/libldacdec/src/bit_allocation.c"
-							  "host/bluedroid/external/libldacdec/src/bit_reader.c"
-							  "host/bluedroid/external/libldacdec/src/huffCodes.c"
-							  "host/bluedroid/external/libldacdec/src/imdct.c"
-							  "host/bluedroid/external/libldacdec/src/libldacdec.c"
-							  "host/bluedroid/external/libldacdec/src/spectrum.c"
-							  "host/bluedroid/external/libldacdec/src/utility.c")
-    list(APPEND srcs ${ldacbt_dec_srcs})
-	list(APPEND srcs ${ldac_dec_srcs})
-
     list(APPEND srcs "host/bluedroid/stack/a2dp/a2dp_vendor_mihc.c"
                      "host/bluedroid/stack/a2dp/a2dp_vendor_mihc_decoder.c")
 endif()
