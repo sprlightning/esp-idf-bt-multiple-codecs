@@ -168,3 +168,7 @@
 	path = components/bt/host/bluedroid/external/libldacdec
 	url = https://github.com/anonymix007/libldacdec.git
 	branch = master
+[submodule "components/bt/host/bluedroid/external/liblhdcv5dec"]
+	path = components/bt/host/bluedroid/external/liblhdcv5dec
+	url = https://github.com/sprlightning/liblhdcv5dec.git
+	branch = main
