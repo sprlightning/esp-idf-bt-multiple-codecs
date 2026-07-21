@@ -149,14 +149,17 @@
 	path = components/bt/host/bluedroid/external/liblc3
 	url = https://github.com/cfint/liblc3.git
 	branch = esp32
+
 [submodule "components/bt/host/bluedroid/external/libfreeaptx"]
 	path = components/bt/host/bluedroid/external/libfreeaptx
 	url = https://github.com/cfint/libfreeaptx-esp.git
 	branch = master
+
 [submodule "components/bt/host/bluedroid/external/arduino-fdk-aac"]
 	path = components/bt/host/bluedroid/external/arduino-fdk-aac
 	url = https://github.com/cfint/arduino-fdk-aac.git
 	branch = idf_component
+
 [submodule "components/bt/host/bluedroid/external/libldac-dec"]
 	path = components/bt/host/bluedroid/external/libldac-dec
 	url = https://github.com/cfint/libldac-dec.git
