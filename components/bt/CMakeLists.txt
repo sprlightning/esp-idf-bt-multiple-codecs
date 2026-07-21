@@ -855,15 +855,10 @@ endif()
 
 if(CONFIG_BT_A2DP_LHDCV5_DECODER)
     list(APPEND priv_include_dirs host/bluedroid/external/liblhdcv5dec/inc
-								  host/bluedroid/external/liblhdcv5dec/include
-                                  host/bluedroid/external/libldac-dec/src
-                                  host/bluedroid/external/libldac-dec/inc)
+								  host/bluedroid/external/liblhdcv5dec/include)
     list(APPEND lhdcv5bt_dec_srcs "host/bluedroid/external/liblhdcv5dec/src/lhdcv5BT_dec.c"
 									"host/bluedroid/external/liblhdcv5dec/src/lhdcv5_util_dec.c")
-    list(APPEND ldacbt_dec_srcs "host/bluedroid/external/libldac-dec/src/ldacBT.c"
-                                "host/bluedroid/external/libldac-dec/src/ldaclib.c")
     list(APPEND srcs ${lhdcv5bt_dec_srcs})
-    list(APPEND srcs ${ldacbt_dec_srcs})
 
     list(APPEND srcs "host/bluedroid/stack/a2dp/a2dp_vendor_lhdcv5.c"
                      "host/bluedroid/stack/a2dp/a2dp_vendor_lhdcv5_decoder.c")
