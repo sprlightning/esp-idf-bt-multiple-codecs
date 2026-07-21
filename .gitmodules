@@ -157,3 +157,7 @@
 	path = components/bt/host/bluedroid/external/arduino-fdk-aac
 	url = https://github.com/cfint/arduino-fdk-aac.git
 	branch = idf_component
+[submodule "components/bt/host/bluedroid/external/libldac-dec"]
+	path = components/bt/host/bluedroid/external/libldac-dec
+	url = https://github.com/cfint/libldac-dec.git
+	branch = esp32
