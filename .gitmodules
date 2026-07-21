@@ -164,3 +164,7 @@
 	path = components/bt/host/bluedroid/external/libldac-dec
 	url = https://github.com/cfint/libldac-dec.git
 	branch = esp32
+[submodule "components/bt/host/bluedroid/external/libldacdec"]
+	path = components/bt/host/bluedroid/external/libldacdec
+	url = https://github.com/anonymix007/libldacdec.git
+	branch = master
