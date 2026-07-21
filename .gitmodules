@@ -153,3 +153,7 @@
 	path = components/bt/host/bluedroid/external/libfreeaptx
 	url = https://github.com/cfint/libfreeaptx-esp.git
 	branch = master
+[submodule "components/bt/host/bluedroid/external/arduino-fdk-aac"]
+	path = components/bt/host/bluedroid/external/arduino-fdk-aac
+	url = https://github.com/cfint/arduino-fdk-aac.git
+	branch = idf_component
