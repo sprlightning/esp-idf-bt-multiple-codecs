@@ -143,7 +143,9 @@
 [submodule "components/bt/host/bluedroid/external/opus"]
 	path = components/bt/host/bluedroid/external/opus
 	url = https://github.com/xiph/opus.git
+	branch = main
 
 [submodule "components/bt/host/bluedroid/external/liblc3"]
 	path = components/bt/host/bluedroid/external/liblc3
 	url = https://github.com/cfint/liblc3.git
+	branch = esp32
