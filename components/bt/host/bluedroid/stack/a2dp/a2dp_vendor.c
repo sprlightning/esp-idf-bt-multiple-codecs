@@ -608,7 +608,7 @@ bool A2DP_VendorCodecTypeEquals(const uint8_t* p_codec_info_a,
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id_a == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id_a == A2DP_LHDCV5_VENDOR_ID &&
       codec_id_a == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_VendorCodecTypeEqualsLhdcV5(p_codec_info_a, p_codec_info_b);
   }
