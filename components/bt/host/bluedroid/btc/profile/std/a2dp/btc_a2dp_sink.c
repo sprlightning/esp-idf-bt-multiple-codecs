@@ -702,11 +702,13 @@ static void btc_a2dp_sink_thread_cleanup(UNUSED_ATTR void *context)
     osi_event_delete(a2dp_sink_local_param.btc_aa_snk_cb.data_ready_event);
     a2dp_sink_local_param.btc_aa_snk_cb.data_ready_event = NULL;
 
+#if CONFIG_SPIRAM
     /* Free decode buffer */
     if (a2dp_sink_local_param.decode_buf) {
         heap_caps_free(a2dp_sink_local_param.decode_buf);
         a2dp_sink_local_param.decode_buf = NULL;
     }
+#endif
 }
 
 #endif /* BTC_AV_SINK_INCLUDED */
