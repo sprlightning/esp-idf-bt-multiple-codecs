@@ -1,248 +1,389 @@
-/**
- * SPDX-FileCopyrightText: 2025 The Android Open Source Project
- * 
- * SPDX-License-Identifier: Apache-2.0
- * 
- * a2dp_vendor_lhdcv5_decoder.c
- * 
- * 本文件依赖外部库liblhdcv5dec中的lhdcv5BT_dec.h
- * 库liblhdcv5dec中的lhdcv5_util_dec.c无解码功能，其解码部分使用正弦波发生器替代
- * 需要实现lhdcv5_util_dec.c中所有内容，或者使用动态库lhdcv5_util_dec.so、lhdcv5BT_dec.so
- */
+#include <errno.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "common/bt_trace.h"
+#include "esp_heap_caps.h"
+#include "esp_log.h"
+#include "esp_timer.h"
+#include "lhdc_dec.h"
+#include "lhdc_entropy_dec.h"
+#include "lhdc_imdct.h"
+#include "osi/allocator.h"
 #include "stack/a2dp_vendor_lhdcv5.h"
-#include "stack/a2dp_vendor_lhdc_constants.h"
-#include "stack/a2dp_vendor_lhdcv5_constants.h"
 #include "stack/a2dp_vendor_lhdcv5_decoder.h"
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
 
+/* Bluedroid's LOG_INFO/APPL_TRACE_* are compiled out (CONFIG_BT_STACK_NO_LOG),
+ * so use ESP-IDF logging directly to verify the decode path on the monitor. */
+#define LHDCV5_TAG "LHDCV5_DEC"
+#define LHDCV5_LOGI(...) ESP_LOGI(LHDCV5_TAG, __VA_ARGS__)
+#define LHDCV5_LOGW(...) ESP_LOGW(LHDCV5_TAG, __VA_ARGS__)
+#define LHDCV5_LOGE(...) ESP_LOGE(LHDCV5_TAG, __VA_ARGS__)
+
+/* Per-packet decode logging. OFF: each ~100-char ESP_LOGI blocks the decode
+ * task ~9 ms on the 115200-baud UART and audibly stutters playback. Set to 1
+ * only for bring-up. */
+#define LHDCV5_VERBOSE 0
+/* Dump a few real over-the-air payloads as hex (for host replay/sweep). */
+#define LHDCV5_FRAMEDUMP 0
+static uint32_t s_dump_sr = 0;
+static uint32_t s_fd_count = 0;   /* reset per stream in configure */
+
+/* LHDC frames are small (a 96k/5ms HR frame is <~1.3 KB); even a fragmented
+ * frame fits in 3 KB. 8 KB was wasteful static .bss that starved the heap. */
+#define LHDCV5_FRAGMENT_BUF_SIZE (3 * 1024)
+/* Decode output buffer. Must match BT_A2DP_SINK_BUF_LHDCV5 in btc_a2dp_sink.c.
+ * 4 KB so 24-bit content emitted in 32-bit containers fits up to 192k
+ * (960*2*4 = 7680 B). */
+#define LHDCV5_MAX_PCM_BYTES     (4 * 2000)
+
+/*
+ * The decoder workspace (~39 KB) is allocated from the MAIN internal heap via
+ * heap_caps_malloc(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT), NOT osi_malloc. The
+ * bluedroid/osi heap fragments down to a ~15 KB largest free block during a
+ * call, so osi_malloc(39 KB) fails there ("cannot allocate" -> NULL decoder ->
+ * silent packet drop). The main internal heap keeps a large contiguous region.
+ * Allocated ONCE at init, reused across reconfigurations, freed on cleanup. A
+ * permanent static .bss array would instead starve the runtime heap.
+ */
+#define LHDCV5_WS_CAPS (MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT)
 typedef struct {
-    bool initialized;
-    HANDLE_LHDCV5_BT lhdc_handle;
-    uint32_t sample_rate;
-    uint8_t channel_count;
-    uint8_t bits_per_sample;
+    void *workspace;             /* heap block holding the lhdc_decoder_t + rate-sized tail */
+    size_t workspace_size;       /* bytes currently allocated (rate-sized) */
+    lhdc_decoder_t *decoder;
+    int fragment_size;
+    int fragment_count;
+    uint8_t fragment[LHDCV5_FRAGMENT_BUF_SIZE];
     decoded_data_callback_t decode_callback;
 } tA2DP_LHDCV5_DECODER_CB;
 
-static tA2DP_LHDCV5_DECODER_CB a2dp_lhdcv5_decoder_cb;
-static const tA2DP_DECODER_INTERFACE lhdcv5_decoder_interface;
+/* Allocated lazily on init, freed on cleanup. The control block embeds a 3 KB
+ * fragment-reassembly buffer; keeping it off .bss frees that RAM whenever LHDC
+ * is not the active codec (only one A2DP codec runs at a time). The big decoder
+ * workspace (cb->workspace) is separately rate-sized in decoder_configure. */
+static tA2DP_LHDCV5_DECODER_CB *s_lhdc_cb = NULL;
 
-// 初始化LHDC V5解码器
 bool a2dp_lhdcv5_decoder_init(decoded_data_callback_t decode_callback) {
-    LOG_INFO("%s: Initializing LHDC V5 decoder", __func__);
-    memset(&a2dp_lhdcv5_decoder_cb, 0, sizeof(tA2DP_LHDCV5_DECODER_CB));
-
-    a2dp_lhdcv5_decoder_cb.decode_callback = decode_callback;
-    a2dp_lhdcv5_decoder_cb.initialized = true;
-    
-    LOG_INFO("%s: LHDC V5 decoder initialized", __func__);
+    if (!s_lhdc_cb) {
+        s_lhdc_cb = (tA2DP_LHDCV5_DECODER_CB *)calloc(1, sizeof(*s_lhdc_cb));
+        if (!s_lhdc_cb) {
+            LHDCV5_LOGE("cannot allocate LHDC decoder cb");
+            return false;
+        }
+    }
+    tA2DP_LHDCV5_DECODER_CB *cb = s_lhdc_cb;
+    void  *ws  = cb->workspace;      /* keep an already-allocated block across re-init */
+    size_t wss = cb->workspace_size;
+    memset(cb, 0, sizeof(*cb));
+    cb->decode_callback = decode_callback;
+    /* Workspace is RATE-SIZED, so it is (re)allocated in decoder_configure once
+     * the negotiated sample rate is known. Keep any existing block here. */
+    cb->workspace = ws;
+    cb->workspace_size = wss;
     return true;
 }
 
-void a2dp_lhdcv5_decoder_cleanup() {
-    LOG_INFO("%s: Cleaning up LHDC V5 decoder", __func__);
-    
-    if (a2dp_lhdcv5_decoder_cb.initialized) {
-        if (a2dp_lhdcv5_decoder_cb.lhdc_handle != NULL) {
-            lhdcv5BT_dec_deinit_decoder(a2dp_lhdcv5_decoder_cb.lhdc_handle);
-            a2dp_lhdcv5_decoder_cb.lhdc_handle = NULL;
-        }
-        a2dp_lhdcv5_decoder_cb.initialized = false;
-        a2dp_lhdcv5_decoder_cb.decode_callback = NULL;
+void a2dp_lhdcv5_decoder_cleanup(void) {
+    /* Release the lazily-allocated fast-IMDCT tables (480 ~4.2 KB, 960 ~15 KB)
+     * and the entropy FAC models (~6 KB) since LHDC is going away — so none of
+     * the decoder's scratch lingers in DRAM while LDAC/SBC is the active codec. */
+    lhdc_imdct_free_960();
+    lhdc_imdct_free_480();
+    lhdc_imdct_free_1920();   /* 192k tables (missed before -> leaked at 192 kHz) */
+    lhdc_imdct_free_cos();    /* reference-IMDCT cosine table (~30 KB, was never freed) */
+    lhdc_dec_free_window();   /* KBD window (was only freed on rate change) */
+    lhdc_entropy_free();
+    tA2DP_LHDCV5_DECODER_CB *cb = s_lhdc_cb;
+    if (!cb) return;
+    if (cb->workspace) {
+        heap_caps_free(cb->workspace);
+    }
+    free(cb);
+    s_lhdc_cb = NULL;
+}
+
+void a2dp_lhdcv5_decoder_configure(const uint8_t* p_codec_info) {
+    tA2DP_LHDCV5_DECODER_CB *cb = s_lhdc_cb;
+    if (!cb) return;
+    tA2DP_LHDCV5_CIE cie;
+    if (A2DP_ParseInfoLhdcV5(&cie, p_codec_info, false) != A2D_SUCCESS) {
+        LHDCV5_LOGE("failed to parse LHDC V5 CIE");
+        return;
     }
 
-    LOG_INFO("%s: LHDC V5 decoder cleaned up", __func__);
+    cb->decoder = NULL;   /* re-init below */
+
+    lhdc_dec_config_t config = {
+        .sample_rate = LHDC_DEC_SR_48000,
+        .bit_depth = LHDC_DEC_BITDEPTH_16,
+        .frame_duration = LHDC_DEC_FRAME_5MS,   /* LHDC V5 encoder uses 5ms */
+        .channels = 2,
+        .max_frame_bytes = LHDCV5_FRAGMENT_BUF_SIZE,
+        .lossless_enable = 0,
+    };
+
+    /* Sample rate from the CIE (44.1 / 48 / 96 / 192 kHz all supported). */
+    if (cie.sampleRate & A2DP_LHDCV5_SAMPLING_FREQ_192000) {
+        config.sample_rate = LHDC_DEC_SR_192000;
+    } else if (cie.sampleRate & A2DP_LHDCV5_SAMPLING_FREQ_96000) {
+        config.sample_rate = LHDC_DEC_SR_96000;
+    } else if (cie.sampleRate & A2DP_LHDCV5_SAMPLING_FREQ_48000) {
+        config.sample_rate = LHDC_DEC_SR_48000;
+    } else if (cie.sampleRate & A2DP_LHDCV5_SAMPLING_FREQ_44100) {
+        config.sample_rate = LHDC_DEC_SR_44100;
+    }
+
+    /* Bit depth: prefer 24-bit if offered, else 16-bit. */
+    if (cie.bitsPerSample & A2DP_LHDCV5_BITS_PER_SAMPLE_24) {
+        config.bit_depth = LHDC_DEC_BITDEPTH_24;
+    } else {
+        config.bit_depth = LHDC_DEC_BITDEPTH_16;
+    }
+
+    config.channels = 2;
+
+    /* GROW-ONLY workspace, MAX-SIZED for 192k (mdct 1920 = 32,544 B) on the FIRST
+     * LHDC config, then REUSED for every rate with zero realloc.
+     *
+     * Why: rate-sized grow-only can't get 192k to allocate -- the phone connects
+     * 48k first (10 KB ws), then the 48k->192k switch must grow to 32.5 KB, but
+     * streaming has fragmented the heap (largest hole seen as low as 18 KB) so the
+     * 32.5 KB malloc fails -> dec=NULL -> no 192k. Grabbing the full 32.5 KB on the
+     * first config (heap still pristine, ~70+ KB largest) and never realloc'ing
+     * GUARANTEES 192k fits AND keeps the heap stable across LHDC rate switches.
+     * The earlier max-size attempt was reverted ONLY because it had no headroom
+     * (starved 48k/96k to near-OOM); it is now paired with RAM reclaim (lazy/
+     * smaller overlay-mixer ring + smaller audio jitter ring, ~12 KB) so 48k/96k
+     * keep workable free heap. The block frees when the active codec leaves LHDC. */
+    {
+        size_t need = lhdc_dec_get_workspace_size(LHDC_DEC_SR_192000, config.frame_duration);
+        if (!cb->workspace || cb->workspace_size < need) {
+            if (cb->workspace) heap_caps_free(cb->workspace);
+            cb->workspace = heap_caps_malloc(need, LHDCV5_WS_CAPS);
+            if (!cb->workspace) {
+                cb->workspace_size = 0;
+                LHDCV5_LOGE("configure: cannot allocate %u-byte workspace (largest free %u)",
+                            (unsigned)need,
+                            (unsigned)heap_caps_get_largest_free_block(LHDCV5_WS_CAPS));
+                return;
+            }
+            cb->workspace_size = need;
+            LHDCV5_LOGI("configure: workspace %u bytes (max-sized for 192k; rate=%u)",
+                        (unsigned)need, (unsigned)config.sample_rate);
+        }
+    }
+
+    cb->decoder = lhdc_dec_init(cb->workspace, &config);
+    cb->fragment_size = 0;
+    cb->fragment_count = 0;
+#if LHDCV5_FRAMEDUMP
+    s_dump_sr = config.sample_rate; s_fd_count = 0;   /* fresh capture per stream */
+#endif
+
+    if (!cb->decoder) {
+        LHDCV5_LOGE("lhdc_dec_init failed");
+        return;
+    }
+
+    LHDCV5_LOGI("decoder configured: sr=%d depth=%d ch=%d dur=%d",
+                (int)config.sample_rate, (int)config.bit_depth,
+                (int)config.channels, (int)config.frame_duration);
+    g_lhdc_trace = 0;   /* verbose per-frame decode trace off (was 6 for bring-up) */
 }
 
 ssize_t a2dp_lhdcv5_decoder_decode_packet_header(BT_HDR* p_buf) {
-    // 跳过A2DP头部
-    size_t header_len = sizeof(struct media_packet_header) + 
-                        A2DP_LHDC_MPL_HDR_LEN;
+    if (!p_buf) return -EINVAL;
+
+    const size_t header_len = sizeof(struct media_packet_header) +
+                              sizeof(struct media_payload_header);
+    if (p_buf->len < header_len) {
+        APPL_TRACE_ERROR("%s: packet too short", __func__);
+        return -EINVAL;
+    }
+
+    tA2DP_LHDCV5_DECODER_CB *cb = s_lhdc_cb;
+    if (!cb) return -EINVAL;
+    uint8_t* src = ((uint8_t *)(p_buf + 1)) + p_buf->offset;
+    struct media_payload_header* payload =
+        (struct media_payload_header*)(src + sizeof(struct media_packet_header));
+
+#if LHDCV5_VERBOSE
+    /* Periodic proof that A2DP media packets are reaching the LHDC decoder. */
+    static uint32_t s_hdrs = 0;
+    if ((s_hdrs++ % 200) == 0) {
+        LHDCV5_LOGI("pkt hdr#%u: len=%u frag=%d first=%d last=%d frame_count=%u",
+                    s_hdrs, (unsigned)p_buf->len, payload->is_fragmented,
+                    payload->is_first_fragment, payload->is_last_fragment,
+                    payload->frame_count);
+    }
+#endif
+
+
+    if (payload->is_fragmented) {
+        if (payload->is_first_fragment) {
+            cb->fragment_size = 0;
+        } else if (payload->frame_count + 1 != cb->fragment_count ||
+                   (payload->frame_count == 1 && !payload->is_last_fragment)) {
+            cb->fragment_count = 0;
+            cb->fragment_size = 0;
+            return -EINVAL;
+        }
+        cb->fragment_count = payload->frame_count;
+    } else {
+        /* Non-fragmented packet: decode_packet parses the self-delimiting LHDC
+         * frame stream directly (it loops on each frame's [u16 len] header and
+         * does NOT use frame_count), so any count is fine -- do NOT reject 0.
+         * The LHDC payload's leading byte is a seq/marker byte, not an SBC frame
+         * counter, so this 4-bit field is meaningless here. At 256 kbps the phone
+         * packs several small frames per packet and the field reads 0; the old
+         * `frame_count==0 -> EINVAL` rejected EVERY such packet -> NO AUDIO at
+         * 256k (higher bitrates happened to read non-zero and slipped through).
+         * If a payload truly has no decodable frame, decode_packet returns false
+         * (frames==0) and the packet is dropped there. */
+        cb->fragment_count = 0;
+        cb->fragment_size = 0;
+    }
+
     p_buf->offset += header_len;
     p_buf->len -= header_len;
     return 0;
 }
 
-// 错误码转描述字符串
-static const char* lhdcv5_get_error_desc(int32_t error_code) {
-    switch (error_code) {
-        case LHDCV5BT_DEC_API_SUCCEED:
-            return "success";
-        case LHDCV5BT_DEC_API_FAIL:
-            return "fail";
-        case LHDCV5BT_DEC_API_INVALID_INPUT:
-            return "invalid input";
-        case LHDCV5BT_DEC_API_INVALID_OUTPUT:
-            return "invalid output";
-        case LHDCV5BT_DEC_API_INVALID_SEQ_NO:
-            return "invalid seq no";
-        case LHDCV5BT_DEC_API_INIT_DECODER_FAIL:
-            return "init decoder fail";
-        case LHDCV5BT_DEC_API_CHANNEL_SETUP_FAIL:
-            return "channel setup fail";
-        case LHDCV5BT_DEC_API_FRAME_INFO_FAIL:
-            return "frame info fail";
-        case LHDCV5BT_DEC_API_INPUT_NOT_ENOUGH:
-            return "input not enough";
-        case LHDCV5BT_DEC_API_OUTPUT_NOT_ENOUGH:
-            return "output not enough";
-        case LHDCV5BT_DEC_API_DECODE_FAIL:
-            return "decode fail";
-        case LHDCV5BT_DEC_API_ALLOC_MEM_FAIL:
-            return "alloc mem fail";
-        default:
-            return "unknown error";
+bool a2dp_lhdcv5_decoder_decode_packet(BT_HDR* p_buf, unsigned char* buf,
+                                       size_t buf_len) {
+    tA2DP_LHDCV5_DECODER_CB *cb = s_lhdc_cb;
+    if (!cb) return false;
+#if LHDCV5_VERBOSE
+    {
+        static uint32_t s_enter = 0;
+        if ((s_enter++ % 200) == 0) {
+            LHDCV5_LOGI("decode_packet entered #%u: p_buf=%p buf=%p dec=%p cb=%p buf_len=%u",
+                        s_enter, (void*)p_buf, (void*)buf, (void*)cb->decoder,
+                        (void*)cb->decode_callback, (unsigned)buf_len);
+        }
     }
-}
-
-// LHDC V5解码函数
-bool a2dp_lhdcv5_decoder_decode_packet(BT_HDR* p_buf, unsigned char* buf, size_t buf_len) {
-    if (!a2dp_lhdcv5_decoder_cb.initialized || p_buf == NULL || buf == NULL) {
+#endif
+    if (!p_buf || !buf || !cb->decoder || !cb->decode_callback) {
+        static uint32_t s_e = 0;
+        if ((s_e++ % 200) == 0) LHDCV5_LOGW("decode_packet null guard (dec=%p)", (void*)cb->decoder);
+        return false;
+    }
+    if (buf_len < LHDCV5_MAX_PCM_BYTES) {
+        static uint32_t s_b = 0;
+        if ((s_b++ % 200) == 0) LHDCV5_LOGW("decode buf too small: %u < %u",
+                                            (unsigned)buf_len, (unsigned)LHDCV5_MAX_PCM_BYTES);
         return false;
     }
 
-    // 获取payload数据
-    uint8_t* payload = (uint8_t*)(p_buf + 1) + p_buf->offset;
-    uint16_t payload_len = p_buf->len;
-    
-    uint32_t decoded_bytes = buf_len;
-    int32_t ret = lhdcv5BT_dec_decode(
-        payload,
-        payload_len,
-        buf,
-        &decoded_bytes,
-        a2dp_lhdcv5_decoder_cb.bits_per_sample
-    );
+    uint8_t* src = ((uint8_t *)(p_buf + 1)) + p_buf->offset;
+    size_t src_size = p_buf->len;
 
-    if (ret != LHDCV5BT_DEC_API_SUCCEED) {
-        const char* err_desc = lhdcv5_get_error_desc(ret);
-        LOG_ERROR("%s: decode error. result = %d(%s)", __func__, ret, err_desc);
+#if LHDCV5_FRAMEDUMP
+    /* Capture a few REAL over-the-air payloads as hex so the exact frames the
+     * phone sends can be replayed/swept on host. Dumps packets 40..47 (past
+     * startup) once per stream, tagged FDUMP for easy grep. */
+    {
+        uint32_t i = s_fd_count++;
+        if (i >= 60 && i < 140) {   /* one long consecutive burst (80 frames) */
+            char line[1600]; int p = 0;
+            p += snprintf(line+p, sizeof(line)-p, "FDUMP#%u len=%u sr=%u:", i,
+                          (unsigned)src_size, (unsigned)s_dump_sr);
+            for (size_t b = 0; b < src_size && p < (int)sizeof(line)-4; b++)
+                p += snprintf(line+p, sizeof(line)-p, "%02x", src[b]);
+            LHDCV5_LOGI("%s", line);
+        }
+    }
+#endif
+
+    if (cb->fragment_count > 0) {
+        if (src_size > (sizeof(cb->fragment) - (size_t)cb->fragment_size)) {
+            cb->fragment_count = 0;
+            cb->fragment_size = 0;
+            APPL_TRACE_ERROR("%s: fragmented LHDC frame too large", __func__);
+            return false;
+        }
+
+        memcpy(cb->fragment + cb->fragment_size, src, src_size);
+        cb->fragment_size += (int)src_size;
+
+        if (cb->fragment_count > 1) return true;
+
+        src = cb->fragment;
+        src_size = (size_t)cb->fragment_size;
+        cb->fragment_count = 0;
+        cb->fragment_size = 0;
+    }
+
+    /*
+     * One A2DP payload is a concatenation of LHDC V5 frames, each
+     * [u16 LE header][payload]. Decode them in a loop until the input is
+     * exhausted, accumulating the PCM and emitting it to the sink callback.
+     */
+    /*
+     * Decode each LHDC frame in the payload and emit its PCM to the sink right
+     * away (no large accumulation buffer — DRAM on ESP32 is scarce). `buf` is
+     * the caller-provided PCM scratch, big enough for one frame (1920 samples).
+     */
+    /*
+     * The over-the-air LHDC V5 payload begins with ONE leading byte before the
+     * frame stream (an LHDC seq/marker byte not present in the raw encoder
+     * vectors the parser was validated against). The real frames start at
+     * offset 1 as [u16 LE length][payload]; verified on-device by descrambling
+     * each candidate start and checking the leading flag bit == 0 (offset 1, LE
+     * was the unique hit: hdr=0x047d len=250 flag=0). Skip that byte.
+     */
+    size_t off = (src_size >= 1) ? 1 : 0;
+    int frames = 0;
+    size_t pcm_emitted = 0;
+    uint8_t out_channels = 2, out_depth = 16;
+    (void)out_channels; (void)out_depth;
+
+    while (off + 2 <= src_size) {
+        size_t consumed = 0;
+        uint32_t generated = 0;
+        lhdc_dec_frame_info_t info;
+        lhdc_dec_ret_t ret = lhdc_dec_decode_frame(cb->decoder, src + off,
+                                                   src_size - off, buf, 1920,
+                                                   &consumed, &generated, &info);
+        if (ret != LHDC_DEC_OK || consumed == 0) {
+            static uint32_t s_errs = 0;
+            if (frames == 0 && (s_errs++ % 100) == 0) {
+                LHDCV5_LOGW("decode ret=%d off=%u/%u (err#%u)",
+                            ret, (unsigned)off, (unsigned)src_size, s_errs);
+            }
+            break;
+        }
+        out_channels = info.channels;
+        out_depth = info.bit_depth;
+        size_t pcm_bytes = (size_t)generated * info.channels * (info.bit_depth / 8);
+        cb->decode_callback((uint8_t*)buf, pcm_bytes);
+        pcm_emitted += pcm_bytes;
+        off += consumed;
+        frames++;
+    }
+
+    if (frames == 0) {
         return false;
     }
-    
-    // 调用回调函数传递解码后的数据
-    if (a2dp_lhdcv5_decoder_cb.decode_callback) {
-        a2dp_lhdcv5_decoder_cb.decode_callback(buf, decoded_bytes);
+
+#if LHDCV5_VERBOSE
+    /* Periodic stats so we can confirm audio is flowing on the serial monitor.
+     * OFF by default: the ESP_LOGI blocks the decode task ~9 ms on the UART and
+     * stutters audio. The decode-time profiling timers live behind this too. */
+    {
+        static uint32_t s_packets = 0, s_frames = 0, s_pcm = 0;
+        s_packets++; s_frames += frames; s_pcm += pcm_emitted;
+        if ((s_packets % 100) == 1) {
+            LHDCV5_LOGI("RX pkt#%u frames=%d pcm=%u (ch=%d depth=%d) totals: %u frames, %u KiB",
+                        s_packets, frames, (unsigned)pcm_emitted,
+                        out_channels, out_depth, s_frames, s_pcm / 1024);
+        }
     }
-    
+#endif
     return true;
 }
 
-void a2dp_lhdcv5_decoder_start() {
-    LOG_INFO("%s: Starting LHDC V5 decoder", __func__);
-}
-
-void a2dp_lhdcv5_decoder_suspend() {
-    LOG_INFO("%s: Suspending LHDC V5 decoder", __func__);
-}
-
-// 配置LHDCV5解码器
-void a2dp_lhdcv5_decoder_configure(const uint8_t* p_codec_info) {
-    if (!a2dp_lhdcv5_decoder_cb.initialized || p_codec_info == NULL) {
-        return;
-    }
-
-    LOG_INFO( "Enter: %s", __func__);
-
-    tA2DP_LHDCV5_CIE cie;
-    tA2D_STATUS status;
-    status = A2DP_ParseInfoLhdcV5(&cie, (uint8_t*)p_codec_info, false, IS_SNK);
-    if (status != A2D_SUCCESS) {
-        LOG_ERROR("%s: failed parsing codec info. %d", __func__, status);
-        return;
-    }
-
-    // 映射LHDC采样率
-    switch (cie.sampleRate & A2DP_LHDCV5_SAMPLING_FREQ_MASK) {
-        case A2DP_LHDCV5_SAMPLING_FREQ_44100:
-            a2dp_lhdcv5_decoder_cb.sample_rate = 44100;
-            break;
-        case A2DP_LHDCV5_SAMPLING_FREQ_48000:
-            a2dp_lhdcv5_decoder_cb.sample_rate = 48000;
-            break;
-        case A2DP_LHDCV5_SAMPLING_FREQ_96000:
-            a2dp_lhdcv5_decoder_cb.sample_rate = 96000;
-            break;
-        case A2DP_LHDCV5_SAMPLING_FREQ_192000:
-            a2dp_lhdcv5_decoder_cb.sample_rate = 192000;
-            break;
-        default:
-            LOG_ERROR("%s: Unsupported sample rate: 0x%02x", __func__, cie.sampleRate);
-            return;
-    }
-    LOG_INFO("%s: LHDC V5 Sampling frequency = %lu", __func__, a2dp_lhdcv5_decoder_cb.sample_rate);
-
-    // 映射通道模式
-    if (cie.channelMode & A2DP_LHDCV5_CHANNEL_MODE_STEREO) {
-        a2dp_lhdcv5_decoder_cb.channel_count = 2;
-        LOG_INFO("%s: LHDC V5 Channel mode: Stereo", __func__);
-    } else if (cie.channelMode & A2DP_LHDCV5_CHANNEL_MODE_MONO) {
-        a2dp_lhdcv5_decoder_cb.channel_count = 1;
-        LOG_INFO("%s: LHDC V5 Channel mode: Mono", __func__);
-    } else {
-        LOG_ERROR("%s: Unsupported channel mode: 0x%02x", __func__, cie.channelMode);
-        return;
-    }
-
-    // 映射位深
-    switch (cie.bitsPerSample & A2DP_LHDCV5_BIT_FMT_MASK) {
-        case A2DP_LHDCV5_BIT_FMT_32:
-            a2dp_lhdcv5_decoder_cb.bits_per_sample = 32;
-            break;
-        case A2DP_LHDCV5_BIT_FMT_24:
-            a2dp_lhdcv5_decoder_cb.bits_per_sample = 24;
-            break;
-        case A2DP_LHDCV5_BIT_FMT_16:
-            a2dp_lhdcv5_decoder_cb.bits_per_sample = 16;
-            break;
-        default:
-            LOG_ERROR("%s: Unsupported bits per sample: 0x%02x", __func__, cie.bitsPerSample);
-            return;
-    }
-    LOG_INFO("%s: LHDC V5 Bit depth = %d", __func__, a2dp_lhdcv5_decoder_cb.bits_per_sample);
-
-    // 如果已存在解码器句柄，先释放
-    if (a2dp_lhdcv5_decoder_cb.lhdc_handle != NULL) {
-        lhdcv5BT_dec_deinit_decoder(a2dp_lhdcv5_decoder_cb.lhdc_handle);
-        a2dp_lhdcv5_decoder_cb.lhdc_handle = NULL;
-    }
-
-    // 初始化解码器配置
-    tLHDCV5_DEC_CONFIG config = {0};
-    config.version = VERSION_5;
-    config.sample_rate = a2dp_lhdcv5_decoder_cb.sample_rate;
-    config.bits_depth = a2dp_lhdcv5_decoder_cb.bits_per_sample;
-    config.lossless_enable = (cie.hasFeatureLL && (cie.hasFeatureLLESS24Bit || cie.hasFeatureLLESS48K || cie.hasFeatureLLESS96K)) ? 1 : 0;
-
-    // 初始化解码器
-    int32_t ret = lhdcv5BT_dec_init_decoder(&a2dp_lhdcv5_decoder_cb.lhdc_handle, &config);
-    if (ret != LHDCV5BT_DEC_API_SUCCEED || a2dp_lhdcv5_decoder_cb.lhdc_handle == NULL) {
-        APPL_TRACE_ERROR("%s: Failed to initialize LHDC V5 decoder: %d", __func__, ret);
-        return;
-    }
-
-    LOG_INFO("%s: LHDC V5 decoder configured - Sample rate: %d, Channels: %d, Bits: %d",
-             __func__, a2dp_lhdcv5_decoder_cb.sample_rate, a2dp_lhdcv5_decoder_cb.channel_count, 
-             a2dp_lhdcv5_decoder_cb.bits_per_sample);
-}
-
-// LHDCV5 decoder interface，已转移到a2dp_vendor_lhdcv5.c
-// static const tA2DP_DECODER_INTERFACE lhdcv5_decoder_interface = {
-//     a2dp_lhdcv5_decoder_init,
-//     a2dp_lhdcv5_decoder_cleanup,
-//     NULL,
-//     a2dp_lhdcv5_decoder_decode_pocket_header,
-//     a2dp_lhdcv5_decoder_decode_packet,
-//     a2dp_lhdcv5_decoder_start,
-//     a2dp_lhdcv5_decoder_suspend,
-//     a2dp_lhdcv5_decoder_configure,
-// };
-
-// const tA2DP_DECODER_INTERFACE* A2DP_LHDCV5_DecoderInterface(void) {
-//     return &lhdcv5_decoder_interface;
-// }
-
-#endif /* LHDCV5_DEC_INCLUDED */
+#endif /* defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE) */

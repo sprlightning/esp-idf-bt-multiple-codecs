@@ -750,19 +750,10 @@ endif()
 
 if(CONFIG_BT_A2DP_LDAC_DECODER)
     list(APPEND priv_include_dirs host/bluedroid/external/libldac-dec/src
-                                  host/bluedroid/external/libldac-dec/inc
-								  host/bluedroid/external/libldacdec)
+                                  host/bluedroid/external/libldac-dec/inc)
     list(APPEND ldacbt_dec_srcs "host/bluedroid/external/libldac-dec/src/ldacBT.c"
                                 "host/bluedroid/external/libldac-dec/src/ldaclib.c")
-	list(APPEND ldac_dec_srcs "host/bluedroid/external/libldacdec/bit_allocation.c"
-							  "host/bluedroid/external/libldacdec/bit_reader.c"
-							  "host/bluedroid/external/libldacdec/huffCodes.c"
-							  "host/bluedroid/external/libldacdec/imdct.c"
-							  "host/bluedroid/external/libldacdec/libldacdec.c"
-							  "host/bluedroid/external/libldacdec/spectrum.c"
-							  "host/bluedroid/external/libldacdec/utility.c")
     list(APPEND srcs ${ldacbt_dec_srcs})
-	list(APPEND srcs ${ldac_dec_srcs})
 
     list(APPEND srcs "host/bluedroid/stack/a2dp/a2dp_vendor_ldac.c"
                      "host/bluedroid/stack/a2dp/a2dp_vendor_ldacbt_decoder.c")
@@ -853,11 +844,15 @@ if(CONFIG_BT_A2DP_AAC_DECODER)
 endif()
 
 if(CONFIG_BT_A2DP_LHDCV5_DECODER)
-    list(APPEND priv_include_dirs host/bluedroid/external/liblhdcv5dec/inc
-								  host/bluedroid/external/liblhdcv5dec/include)
-    list(APPEND lhdcv5bt_dec_srcs "host/bluedroid/external/liblhdcv5dec/src/lhdcv5BT_dec.c"
-									"host/bluedroid/external/liblhdcv5dec/src/lhdcv5_util_dec.c")
-    list(APPEND srcs ${lhdcv5bt_dec_srcs})
+    list(APPEND priv_include_dirs host/bluedroid/external/LHDC-V5-Decoder/decoder)
+    list(APPEND lhdcv5_dec_srcs "host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_bit_reader.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_dec.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_diag_config.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_entropy_dec.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_imdct.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_sns_synth.c"
+									"host/bluedroid/external/LHDC-V5-Decoder/decoder/lhdc_tables.c")
+    list(APPEND srcs ${lhdcv5_dec_srcs})
 
     list(APPEND srcs "host/bluedroid/stack/a2dp/a2dp_vendor_lhdcv5.c"
                      "host/bluedroid/stack/a2dp/a2dp_vendor_lhdcv5_decoder.c")

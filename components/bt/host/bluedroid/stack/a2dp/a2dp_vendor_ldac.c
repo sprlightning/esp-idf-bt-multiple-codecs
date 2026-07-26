@@ -5,9 +5,9 @@
  * 
  * a2dp_vendor_ldac.c
  * 
- * a2dp_vendor.c <-> a2dp_vendor_ldac.c <-> a2dp_vendor_ldacbt_decoder.c <- ldacBT.h
+ * a2dp_vendor.c <-> a2dp_vendor_ldac.c <-> a2dp_vendor_ldacbt_decoder.c <- ldacBT.h (OK)
  * 
- * a2dp_vendor.c <-> a2dp_vendor_ldac.c <-> a2dp_vendor_ldac_decoder.c <- ldacdec.h
+ * a2dp_vendor.c <-> a2dp_vendor_ldac.c <-> a2dp_vendor_ldac_decoder.c <- ldacdec.h (abandoned)
  */
 
 #include <string.h>

@@ -165,12 +165,7 @@
 	url = https://github.com/cfint/libldac-dec.git
 	branch = esp32
 
-[submodule "components/bt/host/bluedroid/external/libldacdec"]
-	path = components/bt/host/bluedroid/external/libldacdec
-	url = https://github.com/anonymix007/libldacdec.git
-	branch = master
-
-[submodule "components/bt/host/bluedroid/external/liblhdcv5dec"]
-	path = components/bt/host/bluedroid/external/liblhdcv5dec
-	url = https://github.com/sprlightning/liblhdcv5dec.git
+[submodule "components/bt/host/bluedroid/external/LHDC-V5-Decoder"]
+	path = components/bt/host/bluedroid/external/LHDC-V5-Decoder
+	url = https://github.com/WillyBilly06/LHDC-V5-Decoder.git
 	branch = main

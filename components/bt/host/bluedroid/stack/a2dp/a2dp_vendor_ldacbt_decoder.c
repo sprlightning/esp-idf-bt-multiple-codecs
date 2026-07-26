@@ -6,7 +6,7 @@
  * a2dp_vendor_ldacbt_decoder.c
  * 
  * 本文件依赖由O2C14开发的外部库libldac-dec中的ldacBT.h
- * 与a2dp_vendor_ldac_decoder.c相比，本文件性能更好（CMakeLists.txt中只可启用一个）
+ * 与a2dp_vendor_ldac_decoder.c相比，本文件性能更好（a2dp_vendor_ldac_decoder.c was abandoned）
  */
 
 #include "common/bt_trace.h"

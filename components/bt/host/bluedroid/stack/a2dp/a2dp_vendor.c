@@ -81,9 +81,9 @@ tA2D_STATUS A2DP_VendorParseInfo(uint8_t* p_ie, const uint8_t* p_codec_info,
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
-    return A2DP_ParseInfoLhdcV5((tA2DP_LHDCV5_CIE*)p_ie, p_codec_info, is_capability, IS_SNK);
+    return A2DP_ParseInfoLhdcV5((tA2DP_LHDCV5_CIE*)p_ie, p_codec_info, is_capability);
   }
 #endif /* defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE) */
 
@@ -142,7 +142,7 @@ bool A2DP_IsVendorPeerSinkCodecValid(const uint8_t* p_codec_info) {
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_IsVendorPeerSinkCodecValidLhdcV5(p_codec_info);
   }
@@ -216,7 +216,7 @@ tA2D_STATUS A2DP_IsVendorPeerSourceCodecSupported(const uint8_t* p_codec_info) {
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_IsVendorPeerSourceCodecValidLhdcV5(p_codec_info);
   }
@@ -298,7 +298,7 @@ btav_a2dp_codec_index_t A2DP_VendorSinkCodecIndex(
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_VendorSinkCodecIndexLhdcV5(p_codec_info);
   }
@@ -360,7 +360,7 @@ btav_a2dp_codec_index_t A2DP_VendorSourceCodecIndex(
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_VendorSourceCodecIndexLhdcV5(p_codec_info);
   }
@@ -473,7 +473,7 @@ bool A2DP_VendorBuildCodecConfig(UINT8 *p_src_cap, UINT8 *p_result) {
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_VendorBuildCodecConfigLhdcV5(p_src_cap, p_result);
   }
@@ -534,7 +534,7 @@ const char* A2DP_VendorCodecName(const uint8_t* p_codec_info) {
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_VendorCodecNameLhdcV5(p_codec_info);
   }
@@ -670,7 +670,7 @@ const tA2DP_DECODER_INTERFACE* A2DP_GetVendorDecoderInterface(
 
 #if (defined(LHDCV5_DEC_INCLUDED) && LHDCV5_DEC_INCLUDED == TRUE)
   // Check for LHDCV5
-  if (vendor_id == A2DP_LHDC_VENDOR_ID &&
+  if (vendor_id == A2DP_LHDCV5_VENDOR_ID &&
       codec_id == A2DP_LHDCV5_CODEC_ID) {
     return A2DP_GetVendorDecoderInterfaceLhdcV5(p_codec_info);
   }
