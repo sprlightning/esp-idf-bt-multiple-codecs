@@ -146,6 +146,27 @@ config BT_A2DP_MIHC_DECODER
     help
         A2DP MIHC decoder
 
+config BT_AVRCP_ENABLED
+    bool
+    depends on BT_A2DP_ENABLE
+    default y
+    help
+        Audio/Video Remote Control Profile, AVRCP and A2DP are coupled in Bluedroid,
+        AVRCP still controlled by A2DP option, this is a dummy option currently
+
+menu "AVRCP Features"
+    depends on BT_AVRCP_ENABLED
+
+    config BT_AVRCP_CT_COVER_ART_ENABLED
+        bool "AVRCP CT Cover Art"
+        default y
+        help
+            This enable Cover Art feature for AVRCP CT role, Cover Art requires AVRCP
+            version 1.6 or higher. Therefore, if the Cover Art feature is enabled,
+            AVRCP version will set to 1.6, otherwise, it will remain at 1.5
+
+endmenu
+
 config BT_SPP_ENABLED
     bool "SPP"
     depends on BT_CLASSIC_ENABLED
