@@ -2255,6 +2255,51 @@
 #endif
 #endif
 
+#if (AVRC_INCLUDED == TRUE)
+#if (UC_BT_AVRCP_CT_COVER_ART_ENABLED == TRUE)
+#define BTA_AV_CA_INCLUDED          TRUE
+#define BTC_AV_CA_INCLUDED          TRUE
+#define AVRC_CA_INCLUDED            TRUE
+#endif /* UC_BT_AVRCP_CT_COVER_ART_ENABLED */
+#endif /* AVRC_INCLUDED */
+
+#if UC_BT_GOEPC_ENABLED
+#ifndef RFCOMM_INCLUDED
+#define RFCOMM_INCLUDED             TRUE
+#endif
+#ifndef OBEX_INCLUDED
+#define OBEX_INCLUDED               TRUE
+#endif
+#define GOEPC_INCLUDED              TRUE
+#endif /* UC_BT_GOEPC_ENABLED */
+
+/******************************************************************************
+**
+** GOEP
+**
+******************************************************************************/
+
+/* Maximum GOEP client connection allowed */
+#ifndef GOEPC_MAX_CONNECTION
+#define GOEPC_MAX_CONNECTION              3
+#endif
+
+/******************************************************************************
+**
+** OBEX
+**
+******************************************************************************/
+
+/* Maximum OBEX client connection allowed */
+#ifndef OBEX_MAX_CONNECTION
+#define OBEX_MAX_CONNECTION               3
+#endif
+
+/* Maximum OBEX server registered */
+#ifndef OBEX_MAX_SERVER
+#define OBEX_MAX_SERVER                   2
+#endif
+
 /******************************************************************************
 **
 ** MCAP
