@@ -10,3 +10,7 @@ CONFIG_BT_BLE_ENABLED=n
 CONFIG_DAC_DMA_AUTO_16BIT_ALIGN=n
 CONFIG_SPIRAM=y
 CONFIG_PARTITION_TABLE_SINGLE_APP_LARGE=y
+
+# v5.1.4 适配：禁用 A2DP 音频流（a2dp_sink_int_codec_utils 依赖 v6.1.0
+# 组件拆分 esp_driver_i2s/dac，v5.1.4 无此组件；Cover Art 核心不依赖音频输出）
+CONFIG_EXAMPLE_A2DP_SINK_STREAM_ENABLE=n

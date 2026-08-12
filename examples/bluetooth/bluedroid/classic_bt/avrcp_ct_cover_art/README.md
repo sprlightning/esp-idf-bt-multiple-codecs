@@ -132,3 +132,33 @@ For any technical queries, please open an [issue](https://github.com/espressif/e
   A2DP 流，可独立使用；显示层需适配实际屏幕（例程为 ST7789 LCD）
 - 依赖 esp_jpeg 组件（idf.py add-dependency esp_jpeg 拉取）
 - 需要 v5.1.4 框架开启 CONFIG_BT_AVRCP_CT_COVER_ART_ENABLED（默认 y）
+
+## v5.1.4 适配更新（2026-08-12，DeepSeek-V4-Flash）
+
+本例程已适配 esp-idf v5.1.4 并编译通过（`avrcp_ct_cover_art.bin` 847KB）。
+
+**适配内容**：
+- 默认禁用 A2DP 音频流（`CONFIG_EXAMPLE_A2DP_SINK_STREAM_ENABLE=n`）：
+  a2dp_sink_int/ext_codec_utils 依赖 v6.1.0 组件拆分（esp_driver_i2s/dac），
+  v5.1.4 无此组件；Cover Art 核心不依赖音频输出
+- idf_component.yml 移除 a2dp_sink_int/ext_codec_utils 依赖
+- 移除 v6.1.0 特有 API（v5.1.4 无）：
+  - bredr_app_common_utils：esp_bt_dev_cb_event_t（device 回调）、
+    esp_bluedroid_init_with_cfg（改用 esp_bluedroid_init）、
+    auth_cmpl.lk_type、ESP_BT_GAP_ENC_CHG_EVT、mode_chg.interval
+  - a2dp_sink_common_utils：ESP_A2D_SEP_REG_STATE_EVT
+  - avrcp_common_utils：ESP_AVRC_CT/TG_PROF_STATE_EVT
+  - avrcp_metadata_service：补 #include <string.h>
+  - bt_app_av.h：移除 esp_a2d_audio_data_cb（esp_a2d_conn_hdl_t 等 v6.1.0 类型）
+  - main.c：esp_bt_gap_set_device_name → esp_bt_dev_set_device_name，
+    移除 esp_bt_gap_get_device_name
+- avrcp_cover_art_utils CMakeLists：加 driver 依赖（v5.1.4 SPI 在 driver 组件）
+
+**配套框架修复**（components/bt）：
+- bte_init.c 补 OBEX_Init/GOEPC_Init（v6.1.0 初始化接线）
+- GOEP/OBEX 采用 v5.5.2 验证版
+- bta_av_rc_disc：SDP 查询补 ATTR_ID_ADDITION_PROTO_DESC_LISTS + num_attr 4
+- btc_av.c：BTA_AV_CA_STATUS/DATA_EVT 路由到 btc_rc_handler
+- obex_int.h：宏名 OBEX_TL_L2CAP_BT_HDR_OFFSET_MIN → MIN_OFFSET
+
+**依赖**：esp_jpeg 组件（idf.py add-dependency 自动拉取）

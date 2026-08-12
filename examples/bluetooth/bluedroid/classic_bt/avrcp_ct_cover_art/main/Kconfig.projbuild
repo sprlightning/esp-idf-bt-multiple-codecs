@@ -7,7 +7,7 @@ menu "AVRCP Example Configuration"
 
     config EXAMPLE_A2DP_SINK_STREAM_ENABLE
         bool "Enable A2DP Sink Stream"
-        default y
+        default n
         help
             This enables the A2DP sink stream. If disable this option,
             audio data will not be transmitted

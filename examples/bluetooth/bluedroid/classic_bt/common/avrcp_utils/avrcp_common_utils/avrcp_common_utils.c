@@ -77,17 +77,7 @@ void bt_avrc_common_ct_evt_def_hdl(uint16_t event, void *param)
                  rc->get_rn_caps_rsp.evt_set.bits);
         break;
     }
-    /* when avrcp controller init or deinit completed, this event comes */
-    case ESP_AVRC_CT_PROF_STATE_EVT: {
-        if (ESP_AVRC_INIT_SUCCESS == rc->avrc_ct_init_stat.state) {
-            ESP_LOGI(BT_RC_CT_TAG, "AVRCP CT STATE: Init Complete");
-        } else if (ESP_AVRC_DEINIT_SUCCESS == rc->avrc_ct_init_stat.state) {
-            ESP_LOGI(BT_RC_CT_TAG, "AVRCP CT STATE: Deinit Complete");
-        } else {
-            ESP_LOGE(BT_RC_CT_TAG, "AVRCP CT STATE error: %d", rc->avrc_ct_init_stat.state);
-        }
-        break;
-    }
+    /* v5.1.4 适配：ESP_AVRC_CT_PROF_STATE_EVT 为 v6.1.0 新增事件，v5.1.4 无此回调 */
     /* others */
     default:
         ESP_LOGE(BT_RC_CT_TAG, "%s unhandled event: %d", __func__, event);
@@ -129,17 +119,7 @@ void bt_avrc_common_tg_evt_def_hdl(uint16_t event, void *param)
         ESP_LOGI(BT_RC_TG_TAG, "AVRC remote features: %"PRIx32", CT features: %x", rc->rmt_feats.feat_mask, rc->rmt_feats.ct_feat_flag);
         break;
     }
-    /* when avrcp target init or deinit completed, this event comes */
-    case ESP_AVRC_TG_PROF_STATE_EVT: {
-        if (ESP_AVRC_INIT_SUCCESS == rc->avrc_tg_init_stat.state) {
-            ESP_LOGI(BT_RC_TG_TAG, "AVRCP TG STATE: Init Complete");
-        } else if (ESP_AVRC_DEINIT_SUCCESS == rc->avrc_tg_init_stat.state) {
-            ESP_LOGI(BT_RC_TG_TAG, "AVRCP TG STATE: Deinit Complete");
-        } else {
-            ESP_LOGE(BT_RC_TG_TAG, "AVRCP TG STATE error: %d", rc->avrc_tg_init_stat.state);
-        }
-        break;
-    }
+    /* v5.1.4 适配：ESP_AVRC_TG_PROF_STATE_EVT 为 v6.1.0 新增事件，v5.1.4 无此回调 */
     /* others */
     default:
         ESP_LOGE(BT_RC_TG_TAG, "%s unhandled event: %d", __func__, event);

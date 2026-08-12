@@ -18,7 +18,7 @@
 #define OBEX_BT_HDR_MIN_OFFSET      OBEX_TL_RFCOMM_BT_HDR_MIN_OFFSET        /* should set to max value of all transport layer */
 #define OBEX_BT_HDR_RESERVE_LEN     OBEX_TL_RFCOMM_BT_HDR_RESERVE_LEN       /* should set to max value of all transport layer */
 #else
-#define OBEX_BT_HDR_MIN_OFFSET      OBEX_TL_L2CAP_BT_HDR_OFFSET_MIN
+#define OBEX_BT_HDR_MIN_OFFSET      OBEX_TL_L2CAP_BT_HDR_MIN_OFFSET
 #define OBEX_BT_HDR_RESERVE_LEN     OBEX_TL_L2CAP_BT_HDR_RESERVE_LEN
 #endif
 

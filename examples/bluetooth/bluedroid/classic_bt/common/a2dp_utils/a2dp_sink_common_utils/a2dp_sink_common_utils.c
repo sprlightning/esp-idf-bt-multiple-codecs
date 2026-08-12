@@ -75,15 +75,7 @@ void bt_a2d_evt_def_hdl(uint16_t event, void *param)
         }
         break;
     }
-    /* when using external codec, after sep registration done, this event comes */
-    case ESP_A2D_SEP_REG_STATE_EVT: {
-        if (a2d->a2d_sep_reg_stat.reg_state == ESP_A2D_SEP_REG_SUCCESS) {
-            ESP_LOGI(BT_AV_TAG, "A2DP register SEP success, seid: %d", a2d->a2d_sep_reg_stat.seid);
-        } else {
-            ESP_LOGI(BT_AV_TAG, "A2DP register SEP fail, seid: %d, state: %d", a2d->a2d_sep_reg_stat.seid, a2d->a2d_sep_reg_stat.reg_state);
-        }
-        break;
-    }
+    /* v5.1.4 适配：ESP_A2D_SEP_REG_STATE_EVT 为 v6.1.0 新增事件，v5.1.4 无此回调 */
     /* When protocol service capabilities configured, this event comes */
     case ESP_A2D_SNK_PSC_CFG_EVT: {
         ESP_LOGI(BT_AV_TAG, "protocol service capabilities configured: 0x%x ", a2d->a2d_psc_cfg_stat.psc_mask);

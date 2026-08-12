@@ -12,14 +12,6 @@
 #include "esp_gap_bt_api.h"
 
 /**
- * @brief  Device event default handle function
- *
- * @param [in] event  event id
- * @param [in] param  handler parameter
- */
-void bredr_app_dev_evt_def_hdl(esp_bt_dev_cb_event_t event, esp_bt_dev_cb_param_t *param);
-
-/**
  * @brief  GAP event default handle function
  *
  * @param [in] event  event id

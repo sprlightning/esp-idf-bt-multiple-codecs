@@ -27,14 +27,9 @@ void bt_app_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param);
  */
 void bt_app_a2d_data_cb(const uint8_t *data, uint32_t len);
 
-/**
- * @brief  callback function for A2DP sink undecoded audio data
- *
- * @param [in]  conn_hdl  connection handle
- * @param [in]  audio_buf pointer to audio buff
- */
-void bt_app_a2d_audio_data_cb(esp_a2d_conn_hdl_t conn_hdl, esp_a2d_audio_buff_t *audio_buf);
-
+/* v5.1.4 适配：bt_app_a2d_audio_data_cb（外部 codec 音频回调）为 v6.1.0
+ * 特有 API（esp_a2d_conn_hdl_t/esp_a2d_audio_buff_t），v5.1.4 无此类型。
+ * 音频流默认禁用（CONFIG_EXAMPLE_A2DP_SINK_STREAM_ENABLE=n），无需此回调。 */
 /**
  * @brief  callback function for AVRCP controller
  *

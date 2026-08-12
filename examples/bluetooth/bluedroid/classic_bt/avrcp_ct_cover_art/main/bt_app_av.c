@@ -47,8 +47,7 @@ static void bt_app_avrc_ct_evt_hdl(uint16_t event, void *param)
     esp_avrc_ct_cb_param_t *rc = (esp_avrc_ct_cb_param_t *)(param);
 
     switch (event) {
-    case ESP_AVRC_CT_PASSTHROUGH_RSP_EVT:
-    case ESP_AVRC_CT_PROF_STATE_EVT: {
+    case ESP_AVRC_CT_PASSTHROUGH_RSP_EVT: {
         bt_avrc_common_ct_evt_def_hdl(event, param);
         break;
     }
@@ -120,8 +119,7 @@ void bt_app_a2d_cb(esp_a2d_cb_event_t event, esp_a2d_cb_param_t *param)
     }
     case ESP_A2D_CONNECTION_STATE_EVT:
     case ESP_A2D_AUDIO_STATE_EVT:
-    case ESP_A2D_AUDIO_CFG_EVT:
-    case ESP_A2D_SEP_REG_STATE_EVT: {
+    case ESP_A2D_AUDIO_CFG_EVT: {
 #if CONFIG_EXAMPLE_A2DP_SINK_STREAM_ENABLE
 #if CONFIG_EXAMPLE_A2DP_SINK_USE_EXTERNAL_CODEC == FALSE
         bt_app_work_dispatch(bt_a2d_evt_int_codec_hdl, event, param, sizeof(esp_a2d_cb_param_t), NULL, NULL);
@@ -179,7 +177,6 @@ void bt_app_rc_ct_cb(esp_avrc_ct_cb_event_t event, esp_avrc_ct_cb_param_t *param
     case ESP_AVRC_CT_REMOTE_FEATURES_EVT:
     case ESP_AVRC_CT_GET_RN_CAPABILITIES_RSP_EVT:
     case ESP_AVRC_CT_COVER_ART_STATE_EVT:
-    case ESP_AVRC_CT_PROF_STATE_EVT:
         bt_app_work_dispatch(bt_app_avrc_ct_evt_hdl, event, param, sizeof(esp_avrc_ct_cb_param_t), NULL, NULL);
         break;
     default:
@@ -197,7 +194,6 @@ void bt_app_rc_tg_cb(esp_avrc_tg_cb_event_t event, esp_avrc_tg_cb_param_t *param
     case ESP_AVRC_TG_SET_ABSOLUTE_VOLUME_CMD_EVT:
     case ESP_AVRC_TG_REGISTER_NOTIFICATION_EVT:
     case ESP_AVRC_TG_SET_PLAYER_APP_VALUE_EVT:
-    case ESP_AVRC_TG_PROF_STATE_EVT:
         bt_app_work_dispatch(bt_avrc_common_tg_evt_def_hdl, event, param, sizeof(esp_avrc_tg_cb_param_t), NULL, NULL);
         break;
     default:
