@@ -72,4 +72,24 @@ void bt_app_task_start_up(void);
  */
 void bt_app_task_shut_down(void);
 
+/**
+ * @brief  start up the I2S task (v5.1.4 原始 a2dp_sink 音频输出)
+ */
+void bt_i2s_task_start_up(void);
+
+/**
+ * @brief  shut down the I2S task
+ */
+void bt_i2s_task_shut_down(void);
+
+/**
+ * @brief  write data to ringbuffer (A2DP 音频数据 → I2S)
+ *
+ * @param [in] data  pointer to data stream
+ * @param [in] size  data length in byte
+ *
+ * @return size if written to ringbuffer successfully, 0 others
+ */
+size_t write_ringbuf(const uint8_t *data, size_t size);
+
 #endif /* __BT_APP_CORE_UTILS_H__ */
