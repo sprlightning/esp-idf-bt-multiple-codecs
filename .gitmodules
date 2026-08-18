@@ -167,5 +167,5 @@
 
 [submodule "components/bt/host/bluedroid/external/LHDC-V5-Decoder"]
 	path = components/bt/host/bluedroid/external/LHDC-V5-Decoder
-	url = https://github.com/WillyBilly06/LHDC-V5-Decoder.git
+	url = https://github.com/sprlightning/LHDC-V5-Decoder.git
 	branch = main
