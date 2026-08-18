@@ -168,4 +168,4 @@
 [submodule "components/bt/host/bluedroid/external/LHDC-V5-Decoder"]
 	path = components/bt/host/bluedroid/external/LHDC-V5-Decoder
 	url = https://github.com/sprlightning/LHDC-V5-Decoder.git
-	branch = main
+	branch = esp32-d0wd
