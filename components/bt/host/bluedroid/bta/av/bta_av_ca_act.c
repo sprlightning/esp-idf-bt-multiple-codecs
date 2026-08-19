@@ -155,10 +155,11 @@ void bta_av_ca_goep_event_handler(UINT16 handle, UINT8 event, tGOEPC_MSG *p_msg)
 {
     tBTA_AV_DATA *p_data = NULL;
     UINT16 rcb_idx;
-    ESP_LOGE("BT_CA_DBG", "bta_av_ca_goep_event_handler handle:%d event:%d", handle, event);
+    /* print handle, event for DEBUG */
+    GOEPC_TRACE_API("bta_av_ca_goep_event_handler handle:%d event:%d", handle, event);
     if (!find_rcb_idx_by_goep_handle(handle, &rcb_idx)) {
         /* can not find a rcb, go error */
-        ESP_LOGE("BT_CA_DBG", "bta_av_ca_goep_event_handler can not find rcb for handle:%d", handle);
+        GOEPC_TRACE_ERROR("bta_av_ca_goep_event_handler can not find rcb for handle:%d", handle);
         goto error;
     }
 
@@ -229,7 +230,8 @@ void bta_av_ca_api_open(tBTA_AV_RCB *p_rcb, tBTA_AV_DATA *p_data)
     svr.l2cap.sec_mask = bta_av_cb.sec_mask;
     p_rcb->cover_art_max_rx = p_data->api_ca_open.mtu;
     get_peer_bd_addr(p_rcb, svr.l2cap.addr);
-    ESP_LOGE("BT_CA_DBG", "bta_av_ca_api_open psm:0x%x mtu:%d sec:0x%x peer:%02x:%02x:%02x:%02x:%02x:%02x",
+    /* print psm, mtu, sec, peer addr for DEBUG */
+    APPL_TRACE_API("bta_av_ca_api_open psm:0x%x mtu:%d sec:0x%x peer:%02x:%02x:%02x:%02x:%02x:%02x",
                      svr.l2cap.psm, svr.l2cap.pref_mtu, svr.l2cap.sec_mask,
                      svr.l2cap.addr[0], svr.l2cap.addr[1], svr.l2cap.addr[2],
                      svr.l2cap.addr[3], svr.l2cap.addr[4], svr.l2cap.addr[5]);
