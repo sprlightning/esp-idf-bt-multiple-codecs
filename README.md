@@ -4,6 +4,34 @@
 
 ESP-IDF is the development framework for Espressif SoCs supported on Windows, Linux and macOS.
 
+# Supported Codecs
+
+| Codec | Rates / depth | Notes |
+|-------|---------------|-------|
+| **[LDAC](components/bt/host/bluedroid/external/libldac-dec)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
+| **[LHDC V5](components/bt/host/bluedroid/external/LHDC-V5-Decoder)** | up to 192 kHz / 24-bit | 400–1000 kbps, 192kHz is hard to decode in ESP32-D0WD |
+| **[aptX / aptX-HD / aptX-LL](components/bt/host/bluedroid/external/libfreeaptx)** | up to 48 kHz / 24-bit | |
+| **[Opus](components/bt/host/bluedroid/external/opus)** | 48 kHz | |
+| **[LC3plus](components/bt/host/bluedroid/external/liblc3)** | up to 96 kHz | |
+| **[AAC](components/bt/host/bluedroid/external/arduino-fdk-aac)** | up to 48 kHz | Helix decoder |
+| **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
+
+# New Functions
+
+| Function | Notes |
+|----------|-------|
+| AVRCP Absolute Volume Control | Bidirectional Absolute Volume Control, ported from ESP-IDF V5.1.6 |
+| AVRCP Coverart Display | Receive and display album coverart images sent by A2DP Source devices such as mobile phones, ported from ESP-IDF V6.1.0 & V5.5.2 |
+
+# Contributions
+
+| User | Contributions |
+|------|---------------|
+| **[cfint](https://github.com/cfint)** | First port multiple decoders from AOSP to ESP‑IDF |
+| **[O2C14](https://github.com/O2C14)** | Independently implemented and open‑sourced the source code of the LDAC decoder |
+| **[WillyBilly06](https://github.com/WillyBilly06)** | Independently implemented and open‑sourced the source code of the LHDC V5 decoder |
+| **[sprlightning](https://github.com/sprlightning)** | Implemented the LHDC V5 decoder with Split Workspace support, continued maintaining cfint's ESP‑IDF V5.1.4, added LHDC V5 support, added AVRCP Absolute Volume Control, and added AVRCP Coverart Display |
+
 # ESP-IDF Release Support Schedule
 
 ![Support Schedule](https://dl.espressif.com/dl/esp-idf/support-periods.svg)

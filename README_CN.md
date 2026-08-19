@@ -4,6 +4,34 @@
 
 ESP-IDF 是乐鑫官方推出的物联网开发框架，支持 Windows、Linux 和 macOS 操作系统。
 
+# 支持的解码器
+
+| Codec | Rates / depth | Notes |
+|-------|---------------|-------|
+| **[LDAC](components/bt/host/bluedroid/external/libldac-dec)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
+| **[LHDC V5](components/bt/host/bluedroid/external/LHDC-V5-Decoder)** | up to 192 kHz / 24-bit | 400–1000 kbps, 192kHz解码对ESP32-D0WD来说比较困难 |
+| **[aptX / aptX-HD / aptX-LL](components/bt/host/bluedroid/external/libfreeaptx)** | up to 48 kHz / 24-bit | |
+| **[Opus](components/bt/host/bluedroid/external/opus)** | 48 kHz | |
+| **[LC3plus](components/bt/host/bluedroid/external/liblc3)** | up to 96 kHz | |
+| **[AAC](components/bt/host/bluedroid/external/arduino-fdk-aac)** | up to 48 kHz | Helix decoder |
+| **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
+
+# 新功能
+
+| Function | Notes |
+|----------|-------|
+| AVRCP Absolute Volume Control | 双向绝对音量控制，移植自 ESP‑IDF V5.1.6 |
+| AVRCP Coverart Display | 接收并显示由手机等A2DP信源设备发送的专辑封面图像，移植自ESP‑IDF V6.1.0与V5.5.2版本 |
+
+# 贡献
+
+| User | Contributions |
+|------|---------------|
+| **[cfint](https://github.com/cfint)** | 首次将多个解码器从AOSP移植到ESP‑IDF |
+| **[O2C14](https://github.com/O2C14)** | 独立实现并开源了LDAC解码器的源代码 |
+| **[WillyBilly06](https://github.com/WillyBilly06)** | 独立实现并开源了LHDC V5解码器的源代码 |
+| **[sprlightning](https://github.com/sprlightning)** | 实现了支持分离工作区的LHDC V5解码器，持续维护cfint的ESP‑IDF V5.1.4版本，新增LHDC V5支持，新增AVRCP绝对音量控制功能，新增AVRCP专辑封面显示功能 |
+
 # ESP-IDF 版本支持期限
 
 ![支持期限](https://dl.espressif.com/dl/esp-idf/support-periods.svg)
