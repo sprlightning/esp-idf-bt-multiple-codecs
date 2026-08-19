@@ -8,12 +8,12 @@ ESP-IDF 是乐鑫官方推出的物联网开发框架，支持 Windows、Linux �
 
 | Codec | Rates / depth | Notes |
 |-------|---------------|-------|
-| **[LDAC](components/bt/host/bluedroid/external/libldac-dec)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
-| **[LHDC V5](components/bt/host/bluedroid/external/LHDC-V5-Decoder)** | up to 192 kHz / 24-bit | 400–1000 kbps, 192kHz解码对ESP32-D0WD来说比较困难 |
-| **[aptX / aptX-HD / aptX-LL](components/bt/host/bluedroid/external/libfreeaptx)** | up to 48 kHz / 24-bit | |
-| **[Opus](components/bt/host/bluedroid/external/opus)** | 48 kHz | |
-| **[LC3plus](components/bt/host/bluedroid/external/liblc3)** | up to 96 kHz | |
-| **[AAC](components/bt/host/bluedroid/external/arduino-fdk-aac)** | up to 48 kHz | Helix decoder |
+| **[LDAC](https://github.com/cfint/libldac-dec/tree/esp32)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
+| **[LHDC V5](https://github.com/sprlightning/LHDC-V5-Decoder/tree/esp32-d0wd)** | up to 192 kHz / 24-bit | 400–1000 kbps, 192kHz解码对ESP32-D0WD来说比较困难 |
+| **[aptX / aptX-HD / aptX-LL](https://github.com/cfint/libfreeaptx-esp/tree/master)** | up to 48 kHz / 24-bit | |
+| **[Opus](https://github.com/xiph/opus/tree/main)** | 48 kHz | |
+| **[LC3plus](https://github.com/cfint/liblc3/tree/esp32)** | up to 96 kHz | |
+| **[AAC](https://github.com/cfint/arduino-fdk-aac/tree/idf_component)** | up to 48 kHz | Helix decoder |
 | **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
 
 # 新功能
@@ -31,6 +31,16 @@ ESP-IDF 是乐鑫官方推出的物联网开发框架，支持 Windows、Linux �
 | **[O2C14](https://github.com/O2C14)** | 独立实现并开源了LDAC解码器的源代码 |
 | **[WillyBilly06](https://github.com/WillyBilly06)** | 独立实现并开源了LHDC V5解码器的源代码 |
 | **[sprlightning](https://github.com/sprlightning)** | 实现了支持分离工作区的LHDC V5解码器，持续维护cfint的ESP‑IDF V5.1.4版本，新增LHDC V5支持，新增AVRCP绝对音量控制功能，新增AVRCP专辑封面显示功能 |
+
+# 如何使用
+
+首先克隆该仓库，然后执行 `git submodule update --init --recursive`。
+
+# 如何切换解码器
+
+使用 [Bluetooth Codec Changer](https://play.google.com/store/apps/details?id=com.amrg.bluetooth_codec_converter)。
+
+![](BluetoothCodecChanger.jpg)
 
 # ESP-IDF 版本支持期限
 
