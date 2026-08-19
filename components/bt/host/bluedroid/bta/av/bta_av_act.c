@@ -1551,7 +1551,8 @@ tBTA_AV_FEAT bta_av_check_peer_rc_features (UINT16 service_uuid, UINT16 *rc_feat
                     if ((service_uuid == UUID_SERVCLASS_AV_REM_CTRL_TARGET) && (categories & AVRC_SUPF_TG_COVER_ART)) {
                         /* remote target support cover art */
                         peer_features |= BTA_AV_FEAT_COVER_ART;
-                        ESP_LOGE("BT_SDP_DBG", "bta_av_check_peer_rc_features: peer TG supports cover art (categories 0x%x)", categories);
+                        /* print categories for DEBUG */
+                        APPL_TRACE_API("bta_av_check_peer_rc_features: peer TG supports cover art (categories 0x%x)", categories);
                     }
                 }
             }
@@ -1665,7 +1666,8 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
 #if BTA_AV_CA_INCLUDED
     if (peer_features & BTA_AV_FEAT_COVER_ART) {
         obex_l2cap_psm = bta_av_extra_tg_cover_art_l2cap_psm();
-        ESP_LOGE("BT_SDP_DBG", "bta_av_rc_disc_done cover art supported, obex psm:0x%x", obex_l2cap_psm);
+        /* print obex_l2cap_psm for DEBUG */
+        OBEX_TRACE_API("bta_av_rc_disc_done cover art supported, obex psm:0x%x", obex_l2cap_psm);
     }
 #endif
 
@@ -1827,7 +1829,7 @@ void bta_av_rc_disc(UINT8 disc)
 {
     tBTA_AV_CB   *p_cb = &bta_av_cb;
     tAVRC_SDP_DB_PARAMS db_params;
-    ESP_LOGE("BT_SDP_DBG", "bta_av_rc_disc disc:0x%x", disc);
+    APPL_TRACE_API("bta_av_rc_disc disc:0x%x", disc);   // test OK, print disc for DEBUG
     UINT16              attr_list[] = {ATTR_ID_SERVICE_CLASS_ID_LIST,
                                        ATTR_ID_BT_PROFILE_DESC_LIST,
                                        ATTR_ID_ADDITION_PROTO_DESC_LISTS,
