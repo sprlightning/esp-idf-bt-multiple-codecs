@@ -1667,7 +1667,7 @@ void bta_av_rc_disc_done(tBTA_AV_DATA *p_data)
     if (peer_features & BTA_AV_FEAT_COVER_ART) {
         obex_l2cap_psm = bta_av_extra_tg_cover_art_l2cap_psm();
         /* print obex_l2cap_psm for DEBUG */
-        OBEX_TRACE_API("bta_av_rc_disc_done cover art supported, obex psm:0x%x", obex_l2cap_psm);
+        APPL_TRACE_API("bta_av_rc_disc_done cover art supported, obex psm:0x%x", obex_l2cap_psm);
     }
 #endif
 

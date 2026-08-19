@@ -156,10 +156,10 @@ void bta_av_ca_goep_event_handler(UINT16 handle, UINT8 event, tGOEPC_MSG *p_msg)
     tBTA_AV_DATA *p_data = NULL;
     UINT16 rcb_idx;
     /* print handle, event for DEBUG */
-    GOEPC_TRACE_API("bta_av_ca_goep_event_handler handle:%d event:%d", handle, event);
+    APPL_TRACE_API("bta_av_ca_goep_event_handler handle:%d event:%d", handle, event);
     if (!find_rcb_idx_by_goep_handle(handle, &rcb_idx)) {
         /* can not find a rcb, go error */
-        GOEPC_TRACE_ERROR("bta_av_ca_goep_event_handler can not find rcb for handle:%d", handle);
+        APPL_TRACE_ERROR("bta_av_ca_goep_event_handler can not find rcb for handle:%d", handle);
         goto error;
     }
 
