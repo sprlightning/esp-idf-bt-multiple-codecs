@@ -134,6 +134,9 @@ typedef void (*tBTU_EVENT_CALLBACK)(BT_HDR *p_hdr);
 /* BPP Timer */
 #define BTU_TTYPE_BPP_REF_CHNL     72
 
+/* AVDT L2CAP config retry timer */
+#define BTU_TTYPE_AVDT_TC_CFG    76
+
 /* LP HC idle Timer */
 #define BTU_TTYPE_LP_HC_IDLE_TO 74
 
