@@ -54,6 +54,9 @@
 #define A2D_MEDIA_CT_M12        0x01    /* MPEG-1, 2 Audio media codec type */
 #define A2D_MEDIA_CT_M24        0x02    /* MPEG-2, 4 AAC media codec type */
 #define A2D_MEDIA_CT_ATRAC      0x04    /* ATRAC family media codec type */
+#define A2D_MEDIA_CT_NON_A2DP   0xFF    /* Non-A2DP media codec type (vendor-specific codec) */
+
+typedef uint8_t tA2D_CODEC_TYPE; /* A2DP Codec type: A2DP_MEDIA_CT_* */
 
 #define A2D_SUCCESS           0     /* Success */
 #define A2D_FAIL              0x0A  /* Failed */
@@ -237,7 +240,7 @@ extern UINT8 A2D_SetTraceLevel (UINT8 new_level);
 **                  A2D_SET_ZERO_BIT, if all bits clear
 **                  A2D_SET_MULTL_BIT, if multiple bits are set
 ******************************************************************************/
-extern UINT8 A2D_BitsSet(UINT8 num);
+extern uint8_t A2D_BitsSet(uint64_t num);
 
 /*******************************************************************************
 **
