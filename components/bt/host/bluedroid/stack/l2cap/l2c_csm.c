@@ -256,11 +256,26 @@ static void l2c_csm_closed (tL2C_CCB *p_ccb, UINT16 event, void *p_data)
             BTM_SetPowerMode (BTM_PM_SET_ONLY_ID, p_ccb->p_lcb->remote_bd_addr, &settings);
         }
 
-        p_ccb->chnl_state = CST_TERM_W4_SEC_COMP;
-        if (btm_sec_l2cap_access_req (p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
-                                      p_ccb->p_lcb->handle, FALSE, &l2c_link_sec_comp, p_ccb) == BTM_CMD_STARTED) {
-            /* started the security process, tell the peer to set a longer timer */
-            l2cu_send_peer_connect_rsp(p_ccb, L2CAP_CONN_PENDING, 0);
+        /* For AVDTP (PSM 0x0019) and AVCTP (PSM 0x0017), skip L2CAP-level
+         * security entirely. Link-level encryption is already established.
+         * The async security check introduces a ConnectRsp(PENDING) that causes
+         * some Realtek BT adapters to abandon the L2CAP config exchange.
+         * Go directly to W4_L2CA_CONNECT_RSP so Connect_Ind_Cb fires immediately.
+         */
+        if (p_ccb->p_rcb->psm == 0x0019 || p_ccb->p_rcb->psm == 0x0017) {
+            L2CAP_TRACE_WARNING("L2CAP - Bypassing security for PSM 0x%04x, CID: 0x%04x", p_ccb->p_rcb->psm, p_ccb->local_cid);
+            p_ccb->chnl_state = CST_W4_L2CA_CONNECT_RSP;
+            btu_start_timer (&p_ccb->timer_entry, BTU_TTYPE_L2CAP_CHNL, L2CAP_CHNL_CONNECT_TOUT);
+            L2CAP_TRACE_API ("L2CAP - Calling Connect_Ind_Cb(), CID: 0x%04x  PSM: 0x%04x", p_ccb->local_cid, p_ccb->p_rcb->psm);
+            (*p_ccb->p_rcb->api.pL2CA_ConnectInd_Cb) (p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid,
+                    p_ccb->p_rcb->psm, p_ccb->remote_id);
+        } else {
+            p_ccb->chnl_state = CST_TERM_W4_SEC_COMP;
+            if (btm_sec_l2cap_access_req (p_ccb->p_lcb->remote_bd_addr, p_ccb->p_rcb->psm,
+                                          p_ccb->p_lcb->handle, FALSE, &l2c_link_sec_comp, p_ccb) == BTM_CMD_STARTED) {
+                /* started the security process, tell the peer to set a longer timer */
+                l2cu_send_peer_connect_rsp(p_ccb, L2CAP_CONN_PENDING, 0);
+            }
         }
         break;
 
@@ -413,7 +428,7 @@ static void l2c_csm_term_w4_sec_comp (tL2C_CCB *p_ccb, UINT16 event, void *p_dat
         if (!p_ccb->p_lcb->w4_info_rsp) {
             /* Don't need to get info from peer or already retrieved so continue */
             btu_start_timer (&p_ccb->timer_entry, BTU_TTYPE_L2CAP_CHNL, L2CAP_CHNL_CONNECT_TOUT);
-            L2CAP_TRACE_API ("L2CAP - Calling Connect_Ind_Cb(), CID: 0x%04x", p_ccb->local_cid);
+            L2CAP_TRACE_API ("L2CAP - Calling Connect_Ind_Cb(), CID: 0x%04x  PSM: 0x%04x", p_ccb->local_cid, p_ccb->p_rcb->psm);
 
             (*p_ccb->p_rcb->api.pL2CA_ConnectInd_Cb) (p_ccb->p_lcb->remote_bd_addr, p_ccb->local_cid,
                     p_ccb->p_rcb->psm, p_ccb->remote_id);
@@ -435,6 +450,7 @@ static void l2c_csm_term_w4_sec_comp (tL2C_CCB *p_ccb, UINT16 event, void *p_dat
     case L2CEVT_SEC_COMP_NEG:
         if (((tL2C_CONN_INFO *)p_data)->status == BTM_DELAY_CHECK) {
             /* start a timer - encryption change not received before L2CAP connect req */
+            L2CAP_TRACE_WARNING ("L2CAP - SEC_COMP_NEG BTM_DELAY_CHECK for CID: 0x%04x - waiting %ds for encryption", p_ccb->local_cid, L2CAP_DELAY_CHECK_SM4);
             btu_start_timer (&p_ccb->timer_entry, BTU_TTYPE_L2CAP_CHNL, L2CAP_DELAY_CHECK_SM4);
         } else {
             l2cu_send_peer_connect_rsp (p_ccb, L2CAP_CONN_SECURITY_BLOCK, 0);
@@ -462,6 +478,7 @@ static void l2c_csm_term_w4_sec_comp (tL2C_CCB *p_ccb, UINT16 event, void *p_dat
 
     case L2CEVT_TIMEOUT:
         /* SM4 related. */
+        L2CAP_TRACE_WARNING ("L2CAP - TERM_W4_SEC_COMP TIMEOUT for CID: 0x%04x - disconnecting ACL handle %d (encryption not completed in time)", p_ccb->local_cid, p_ccb->p_lcb->handle);
         if (!btsnd_hcic_disconnect (p_ccb->p_lcb->handle, HCI_ERR_AUTH_FAILURE)) {
             L2CAP_TRACE_API ("L2CAP - Calling btsnd_hcic_disconnect for handle %i failed", p_ccb->p_lcb->handle);
             btu_start_timer (&p_ccb->timer_entry, BTU_TTYPE_L2CAP_CHNL, 1);

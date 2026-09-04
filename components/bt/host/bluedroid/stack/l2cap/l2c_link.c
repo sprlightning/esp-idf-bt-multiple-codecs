@@ -352,6 +352,7 @@ void l2c_link_sec_comp (BD_ADDR p_bda, tBT_TRANSPORT transport, void *p_ref_data
 
             case BTM_DELAY_CHECK:
                 /* start a timer - encryption change not received before L2CAP connect req */
+                L2CAP_TRACE_WARNING ("L2CAP - BTM_DELAY_CHECK for CID: 0x%04x - waiting %ds for encryption", p_ccb->local_cid, L2CAP_DELAY_CHECK_SM4);
                 btu_start_timer (&p_ccb->timer_entry, BTU_TTYPE_L2CAP_CHNL, L2CAP_DELAY_CHECK_SM4);
                 return;
 

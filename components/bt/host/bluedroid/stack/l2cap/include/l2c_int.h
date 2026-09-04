@@ -61,7 +61,7 @@
 #define L2CAP_CHNL_CONNECT_TOUT_EXT  120          /* 120 seconds */
 #define L2CAP_CHNL_CFG_TIMEOUT       30           /* 30 seconds */
 #define L2CAP_CHNL_DISCONNECT_TOUT   10           /* 10 seconds */
-#define L2CAP_DELAY_CHECK_SM4        2            /* 2 seconds */
+#define L2CAP_DELAY_CHECK_SM4        5            /* 5 seconds (was 2, increased for Windows compat) */
 #define L2CAP_WAIT_INFO_RSP_TOUT     3            /* 3 seconds */
 #define L2CAP_WAIT_UNPARK_TOUT       2            /* 2 seconds */
 #define L2CAP_LINK_INFO_RESP_TOUT    2            /* 2 seconds */
@@ -311,6 +311,8 @@ typedef struct t_l2c_ccb {
 
 #define CCB_FLAG_NO_RETRY       0x01            /* no more retry */
 #define CCB_FLAG_SENT_PENDING   0x02            /* already sent pending response */
+#define CCB_FLAG_SENT_CONN_OK   0x04            /* already sent ConnectRsp(OK) - dedup guard */
+#define CCB_FLAG_SENT_CFG_REQ   0x08            /* already sent ConfigReq - dedup guard */
     UINT8               flags;
 
     tL2CAP_CFG_INFO     our_cfg;                /* Our saved configuration options    */

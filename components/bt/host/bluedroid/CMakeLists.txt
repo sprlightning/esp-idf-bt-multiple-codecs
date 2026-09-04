@@ -404,6 +404,141 @@ if((CONFIG_BT_A2DP_ENABLE AND NOT CONFIG_BT_A2DP_USE_EXTERNAL_CODEC) OR
         "${CMAKE_CURRENT_LIST_DIR}/external/sbc/plc/sbc_plc.c")
 endif()
 
+# ============================================================================
+# Extended A2DP codec framework + vendor decoders (ported from v5.5.2 fork)
+# ============================================================================
+if(CONFIG_BT_A2DP_ENABLE)
+    # Framework core (decoder-interface + codec DB + vendor dispatch)
+    list(APPEND bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2d_sbc_decoder.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_codec_config.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor.c")
+    list(APPEND bluedroid_host_priv_include_dirs "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/include")
+endif()
+
+if(CONFIG_BT_A2DP_APTX_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs ${CMAKE_CURRENT_LIST_DIR}/external/libfreeaptx/main)
+    list(APPEND bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/external/libfreeaptx/main/freeaptx.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_aptx.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_aptx_hd.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_aptx_ll.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_aptx_decoder.c")
+endif()
+
+if(CONFIG_BT_A2DP_LDAC_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs
+        ${CMAKE_CURRENT_LIST_DIR}/external/libldac-dec/src
+        ${CMAKE_CURRENT_LIST_DIR}/external/libldac-dec/inc)
+    list(APPEND bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/external/libldac-dec/src/ldacBT.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libldac-dec/src/ldaclib.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_ldac.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_ldacbt_decoder.c")
+endif()
+
+if(CONFIG_BT_A2DP_OPUS_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/include"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/silk"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/fixed"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/float"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/celt"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus/dnn"
+        "${CMAKE_CURRENT_LIST_DIR}/external/opus_config")
+    file(GLOB opus_srcs  "${CMAKE_CURRENT_LIST_DIR}/external/opus/src/*.c")
+    file(GLOB opus_silk  "${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/*.c")
+    file(GLOB opus_celt  "${CMAKE_CURRENT_LIST_DIR}/external/opus/celt/*.c")
+    file(GLOB opus_fixed "${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/fixed/*.c")
+    list(APPEND bluedroid_host_srcs ${opus_srcs} ${opus_silk} ${opus_celt} ${opus_fixed}
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_opus.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_opus_decoder.c")
+    set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/NLSF2A.c          PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+    set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/external/opus/silk/quant_LTP_gains.c PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+    set_source_files_properties(${CMAKE_CURRENT_LIST_DIR}/external/opus/celt/celt_lpc.c        PROPERTIES COMPILE_FLAGS -Wno-maybe-uninitialized)
+endif()
+
+if(CONFIG_BT_A2DP_LC3PLUS_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs "${CMAKE_CURRENT_LIST_DIR}/external/liblc3/include")
+    file(GLOB lc3_srcs "${CMAKE_CURRENT_LIST_DIR}/external/liblc3/src/*.c")
+    list(APPEND bluedroid_host_srcs ${lc3_srcs}
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_lc3plus.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_lc3plus_decoder.c")
+endif()
+
+if(CONFIG_BT_A2DP_LHDCV5_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5")
+    list(APPEND bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_bit_reader.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_dec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_entropy_dec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_imdct.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_sns_synth.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_tables.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_diag_config.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_lhdcv5.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_vendor_lhdcv5_decoder.c")
+    set_source_files_properties(
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_bit_reader.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_dec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_entropy_dec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_imdct.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_sns_synth.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/lhdc-v5/lhdc_tables.c"
+        PROPERTIES COMPILE_OPTIONS "-O3")
+endif()
+
+if(CONFIG_BT_A2DP_AAC_DECODER)
+    list(APPEND bluedroid_host_priv_include_dirs
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac")
+    # Explicit AAC-LC core sources only (NO SBR — sbr.c pulls missing hlxclib headers)
+    list(APPEND bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/aacdec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/aactabs.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/bitstream.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/buffers.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/dct4.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/decelmnt.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/dequant.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/fft.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/filefmt.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/huffman.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/hufftabs.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/imdct.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/noiseless.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/pns.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/stproc.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/tns.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/libhelix_aac/trigtabs.c"
+        "${CMAKE_CURRENT_LIST_DIR}/external/libaac-lc/aac_decoder_helix.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_aac.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/latm_parser.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2dp_aac_decoder_custom.c")
+endif()
+
+# In a BLE-only build (Classic BT / A2DP disabled) the A2DP core files compile to
+# empty (their bodies are guarded by BTC_AV*_INCLUDED), but a few pull in A2DP-only
+# headers (e.g. oi_status.h) whose include paths are only added when A2DP is on.
+# They define no symbols when A2DP is off, so drop them from the build entirely.
+if(NOT CONFIG_BT_A2DP_ENABLE)
+    list(REMOVE_ITEM bluedroid_host_srcs
+        "${CMAKE_CURRENT_LIST_DIR}/api/esp_a2dp_api.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/bta_av_co.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_control.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_sink.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_sink_ext_coedc.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_latm_raw.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_source.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_a2dp_source_ext_codec.c"
+        "${CMAKE_CURRENT_LIST_DIR}/btc/profile/std/a2dp/btc_av.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2d_api.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2d_sbc.c"
+        "${CMAKE_CURRENT_LIST_DIR}/stack/a2dp/a2d_m24.c")
+endif()
+
 # Export the variables to the parent scope
 set(bluedroid_host_srcs "${bluedroid_host_srcs}" PARENT_SCOPE)
 set(bluedroid_host_include_dirs "${bluedroid_host_include_dirs}" PARENT_SCOPE)

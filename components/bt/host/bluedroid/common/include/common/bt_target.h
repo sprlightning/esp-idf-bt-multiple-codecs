@@ -92,6 +92,24 @@
 #define BTC_AV_INCLUDED             TRUE
 #define BTA_AV_SINK_INCLUDED        TRUE
 #define BTC_AV_SINK_INCLUDED        TRUE
+#if (UC_BT_A2DP_APTX_DECODER_ENABLED == TRUE)
+#define APTX_DEC_INCLUDED         TRUE
+#endif /* (UC_BT_A2DP_APTX_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_LDAC_DECODER_ENABLED == TRUE)
+#define LDAC_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_LDAC_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_OPUS_DECODER_ENABLED == TRUE)
+#define OPUS_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_OPUS_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_LC3PLUS_DECODER_ENABLED == TRUE)
+#define LC3PLUS_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_LC3PLUS_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_LHDCV5_DECODER_ENABLED == TRUE)
+#define LHDCV5_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_LHDCV5_DECODER_ENABLED == TRUE) */
+#if (UC_BT_A2DP_AAC_DECODER_ENABLED == TRUE)
+#define AAC_DEC_INCLUDED           TRUE
+#endif /* (UC_BT_A2DP_AAC_DECODER_ENABLED == TRUE) */
 #define BTC_AV_SRC_INCLUDED         TRUE
 #if (UC_BT_A2DP_USE_EXTERNAL_CODEC == TRUE)
 #define BTC_AV_EXT_CODEC            TRUE
@@ -2342,7 +2360,46 @@
 
 /* Number of simultaneous stream endpoints. */
 #ifndef AVDT_NUM_SEPS
-#define AVDT_NUM_SEPS               UC_BT_A2DP_SEP_NUM_MAX
+
+# ifdef CONFIG_BT_A2DP_APTX_DECODER
+#  define AVDT_APTX_SEPS	(3)
+# else
+#  define AVDT_APTX_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_APTX_DECODER */
+# ifdef CONFIG_BT_A2DP_LDAC_DECODER
+#  define AVDT_LDAC_SEPS	(1)
+# else
+#  define AVDT_LDAC_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_LDAC_DECODER */
+# ifdef CONFIG_BT_A2DP_OPUS_DECODER
+#  define AVDT_OPUS_SEPS	(1)
+# else
+#  define AVDT_OPUS_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_OPUS_DECODER */
+# ifdef CONFIG_BT_A2DP_LC3PLUS_DECODER
+#  define AVDT_LC3PLUS_SEPS	(1)
+# else
+#  define AVDT_LC3PLUS_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_LC3PLUS_DECODER */
+# ifdef CONFIG_BT_A2DP_LHDCV5_DECODER
+#  define AVDT_LHDCV5_SEPS	(1)
+# else
+#  define AVDT_LHDCV5_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_LHDCV5_DECODER */
+# ifdef CONFIG_BT_A2DP_AAC_DECODER
+#  define AVDT_AAC_SEPS	(1)
+# else
+#  define AVDT_AAC_SEPS	(0)
+# endif /* CONFIG_BT_A2DP_AAC_DECODER */
+
+#define AVDT_NUM_SEPS      (3 \
+							+ AVDT_APTX_SEPS \
+							+ AVDT_LDAC_SEPS \
+							+ AVDT_OPUS_SEPS \
+							+ AVDT_LC3PLUS_SEPS \
+							+ AVDT_LHDCV5_SEPS \
+							+ AVDT_AAC_SEPS \
+							)
 #endif
 
 /* Number of transport channels setup per media stream(audio or video) */
@@ -2367,7 +2424,11 @@
 
 /* Maximum size in bytes of the codec capabilities information element. */
 #ifndef AVDT_CODEC_SIZE
-#define AVDT_CODEC_SIZE             10
+#define AVDT_CODEC_SIZE             30
+#endif
+
+#ifndef AVDT_CODEC_HEADER_SIZE
+#define AVDT_CODEC_HEADER_SIZE      3
 #endif
 
 /* Maximum size in bytes of the content protection information element. */

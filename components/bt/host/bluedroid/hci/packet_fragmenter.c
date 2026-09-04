@@ -22,6 +22,7 @@
 #include "hci/hci_internals.h"
 #include "hci/hci_layer.h"
 #include "hci/packet_fragmenter.h"
+#include "btc_a2dp_sink.h"  /* For memory pressure relief */
 
 #include "osi/hash_map.h"
 #include "osi/hash_functions.h"
@@ -201,8 +202,18 @@ static void reassemble_and_dispatch(BT_HDR *packet)
             partial_packet = (BT_HDR *)osi_calloc(full_length + sizeof(BT_HDR));
 
             if (partial_packet == NULL) {
-               HCI_TRACE_WARNING("%s full_length %d no memory.", __func__, full_length);
-               assert(0);
+               /* Memory pressure detected - try to free A2DP sink buffers */
+#if BTC_AV_SINK_INCLUDED
+               btc_a2dp_sink_on_memory_pressure();
+               
+               /* Retry allocation after freeing A2DP buffers */
+               partial_packet = (BT_HDR *)osi_calloc(full_length + sizeof(BT_HDR));
+#endif
+               if (partial_packet == NULL) {
+                   HCI_TRACE_WARNING("%s: Dropping packet - no memory for %d bytes.\n", __func__, full_length);
+                   osi_free(packet);
+                   return;  // Gracefully drop instead of crash
+               }
             }
 
             partial_packet->event = packet->event;

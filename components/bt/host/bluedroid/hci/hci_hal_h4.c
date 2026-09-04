@@ -26,6 +26,7 @@
 #include "osi/thread.h"
 #include "osi/pkt_queue.h"
 #include "esp_bt_main.h"
+#include "btc_a2dp_sink.h"  /* For memory pressure relief */
 #if (BLE_ADV_REPORT_FLOW_CONTROL == TRUE)
 #include "osi/mutex.h"
 #include "osi/alarm.h"
@@ -642,8 +643,23 @@ static int host_recv_pkt_cb(uint8_t *data, uint16_t len)
         pkt_size = BT_HDR_SIZE + len;
         pkt = (BT_HDR *) osi_calloc(pkt_size);
         if (!pkt) {
-            HCI_TRACE_ERROR("%s couldn't acquire memory for inbound data buffer.\n", __func__);
-            assert(0);
+            /* Memory pressure detected - try to free A2DP sink buffers
+             * to make room for essential HCI packets. This is a synchronous
+             * call that directly frees queued audio packets. */
+#if BTC_AV_SINK_INCLUDED
+            btc_a2dp_sink_on_memory_pressure();
+            
+            /* Retry allocation after freeing A2DP buffers */
+            pkt = (BT_HDR *) osi_calloc(pkt_size);
+#endif
+            if (!pkt) {
+                /* Still no memory - drop this packet and log warning.
+                 * This can happen during high-bandwidth streaming (LDAC/aptX HD)
+                 * when internal memory is temporarily exhausted. The Bluetooth
+                 * stack will handle retransmission if needed. */
+                HCI_TRACE_WARNING("%s: Dropping packet - no memory for %u bytes.\n", __func__, pkt_size);
+                return 0;
+            }
         }
 
         pkt->offset = 0;

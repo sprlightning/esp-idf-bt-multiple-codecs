@@ -360,6 +360,7 @@ static void btu_general_alarm_process(void *param)
     case BTU_TTYPE_AVDT_CCB_RSP:
     case BTU_TTYPE_AVDT_CCB_IDLE:
     case BTU_TTYPE_AVDT_SCB_TC:
+    case BTU_TTYPE_AVDT_TC_CFG:
         avdt_process_timeout(p_tle);
         break;
 #endif

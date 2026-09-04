@@ -146,6 +146,48 @@ menu "AVRCP Features"
 
 endmenu
 
+config BT_A2DP_APTX_DECODER
+    bool "aptX decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP aptX decoder (aptX / aptX-HD / aptX-LL)
+
+config BT_A2DP_LDAC_DECODER
+    bool "LDAC decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LDAC decoder
+
+config BT_A2DP_OPUS_DECODER
+    bool "Opus decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP Opus decoder
+
+config BT_A2DP_LC3PLUS_DECODER
+    bool "LC3 Plus decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP LC3 Plus decoder
+
+config BT_A2DP_LHDCV5_DECODER
+    bool "LHDC V5 decoder (experimental)"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        Experimental A2DP LHDC V5 decoder and codec advertisement.
+
+config BT_A2DP_AAC_DECODER
+    bool "AAC decoder"
+    depends on BT_A2DP_ENABLE
+    default n
+    help
+        A2DP AAC decoder
+
 config BT_SPP_ENABLED
     bool "SPP"
     depends on BT_CLASSIC_ENABLED

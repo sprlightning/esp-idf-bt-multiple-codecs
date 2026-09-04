@@ -620,6 +620,15 @@ void l2cu_send_peer_connect_rsp (tL2C_CCB *p_ccb, UINT16 result, UINT16 status)
         }
     }
 
+    /* Dedup guard for ConnectRsp(OK) - prevent duplicate OK from confusing peer */
+    if (result == L2CAP_CONN_OK) {
+        if (p_ccb->flags & CCB_FLAG_SENT_CONN_OK) {
+            L2CAP_TRACE_WARNING ("L2CAP - SUPPRESSED duplicate ConnectRsp(OK) for CID: 0x%04x", p_ccb->local_cid);
+            return;
+        }
+        p_ccb->flags |= CCB_FLAG_SENT_CONN_OK;
+    }
+
     if ((p_buf = l2cu_build_header(p_ccb->p_lcb, L2CAP_CONN_RSP_LEN, L2CAP_CMD_CONN_RSP, p_ccb->remote_id)) == NULL) {
         L2CAP_TRACE_WARNING ("L2CAP - no buffer for conn_rsp");
         return;
