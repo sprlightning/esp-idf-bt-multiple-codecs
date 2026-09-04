@@ -26,11 +26,11 @@
 #ifndef BTA_AV_API_H
 #define BTA_AV_API_H
 
+#include "bt_av.h"
 #include "stack/avrc_api.h"
 #include "stack/avdt_api.h"
 #include "stack/a2d_api.h"
 #include "bta/bta_api.h"
-#include "common/bt_target.h"
 
 #if (BTA_AV_INCLUDED == TRUE)
 
@@ -97,7 +97,7 @@ typedef UINT8 tBTA_AV_HNDL;
 #endif
 
 #ifndef BTA_AV_MAX_SEPS
-#define BTA_AV_MAX_SEPS         AVDT_NUM_SEPS
+#define BTA_AV_MAX_SEPS         1
 #endif
 
 #ifndef BTA_AV_MAX_A2DP_MTU
@@ -120,7 +120,7 @@ typedef UINT8 tBTA_AV_HNDL;
 #define BTA_AV_CODEC_MPEG4      VDP_MEDIA_CT_MPEG4      /* MPEG-4 Visual Simple Profile */
 #define BTA_AV_CODEC_H263_P3    VDP_MEDIA_CT_H263_P3    /* H.263 profile 3 */
 #define BTA_AV_CODEC_H263_P8    VDP_MEDIA_CT_H263_P8    /* H.263 profile 8 */
-#define BTA_AV_CODEC_VEND       VDP_MEDIA_CT_VEND       /* Non-VDP */
+#define BTA_AV_CODEC_VEND       A2D_MEDIA_CT_NON_A2DP   /* Non-VDP */
 
 typedef UINT8 tBTA_AV_CODEC;
 
@@ -258,6 +258,7 @@ typedef UINT8 tBTA_AV_GET_TYPE;
 #define BTA_AV_REJECT_EVT       18      /* incoming connection rejected */
 #define BTA_AV_RC_FEAT_EVT      19      /* remote control channel peer supported features update */
 #define BTA_AV_MEDIA_CFG_EVT    20      /* command to configure codec */
+#define BTA_AV_MEDIA_SINK_CFG_EVT  BTA_AV_MEDIA_CFG_EVT  /* Compatibility alias for 5.1.4 code */
 #define BTA_AV_MEDIA_DATA_EVT   21      /* sending data to Media Task */
 #define BTA_AV_SET_DELAY_VALUE_EVT   22      /* set delay reporting value */
 #define BTA_AV_GET_DELAY_VALUE_EVT   23      /* get delay reporting value */
@@ -268,36 +269,27 @@ typedef UINT8 tBTA_AV_GET_TYPE;
 #define BTA_AV_CA_STATUS_EVT    26  /* Cover Art Client status event */
 #define BTA_AV_CA_DATA_EVT      27  /* Cover Art response body data */
 
-/* Incoming stream configuration indication received while local stream SSM is in INIT state.
- * This is used to notify upper layers (BTC) that the stream state was force-switched to INCOMING
- * to handle the new signalling/configuration. */
-#define BTA_AV_INCOMING_CFG_EVT 28
-
 /* Max BTA event */
-#define BTA_AV_MAX_EVT          29
+#define BTA_AV_MAX_EVT          28
 
 
 /* function types for call-out functions */
-typedef BOOLEAN (*tBTA_AV_CO_INIT) (UINT8 seid, UINT8 *p_codec_type, UINT8 *p_codec_info,
+typedef BOOLEAN (*tBTA_AV_CO_INIT) (btav_a2dp_codec_index_t codec_index, UINT8 *p_codec_info,
                                     UINT8 *p_num_protect, UINT8 *p_protect_info, UINT8 tsep);
 typedef void (*tBTA_AV_CO_DISC_RES) (tBTA_AV_HNDL hndl, UINT8 num_seps,
                                      UINT8 num_snk, UINT8 num_src, BD_ADDR addr, UINT16 uuid_local);
 typedef void (*tBTA_AV_CO_CFG_RES) (tBTA_AV_HNDL hndl, UINT8 num_seps,
                                      UINT8 num_snk, UINT8 num_src, BD_ADDR addr, UINT16 uuid_local);
-typedef UINT8 (*tBTA_AV_CO_GETCFG) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type,
-                                    UINT8 *p_codec_info, UINT8 *p_sep_info_idx, UINT8 seid,
-                                    UINT8 *p_num_protect, UINT8 *p_protect_info);
-typedef void (*tBTA_AV_CO_SETCFG) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type,
-                                   UINT8 *p_codec_info, UINT8 seid, BD_ADDR addr,
+typedef UINT8 (*tBTA_AV_CO_GETCFG) (tBTA_AV_HNDL hndl,UINT8 *p_codec_info, UINT8 *p_sep_info_idx,
+                                    UINT8 seid, UINT8 *p_num_protect, UINT8 *p_protect_info);
+typedef void (*tBTA_AV_CO_SETCFG) (tBTA_AV_HNDL hndl, UINT8 *p_codec_info, UINT8 seid, BD_ADDR addr,
                                    UINT8 num_protect, UINT8 *p_protect_info,
                                    UINT8 t_local_sep, UINT8 avdt_handle);
-typedef void (*tBTA_AV_CO_OPEN) (tBTA_AV_HNDL hndl,
-                                 tBTA_AV_CODEC codec_type, UINT8 *p_codec_info,
-                                 UINT16 mtu);
-typedef void (*tBTA_AV_CO_CLOSE) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type, UINT16 mtu);
-typedef void (*tBTA_AV_CO_START) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type, UINT8 *p_codec_info, BOOLEAN *p_no_rtp_hdr);
-typedef void (*tBTA_AV_CO_STOP) (tBTA_AV_HNDL hndl, tBTA_AV_CODEC codec_type);
-typedef void *(*tBTA_AV_CO_DATAPATH) (tBTA_AV_CODEC codec_type,
+typedef void (*tBTA_AV_CO_OPEN) (tBTA_AV_HNDL hndl, UINT8 *p_codec_info, UINT16 mtu);
+typedef void (*tBTA_AV_CO_CLOSE) (tBTA_AV_HNDL hndl, UINT16 mtu);
+typedef void (*tBTA_AV_CO_START) (tBTA_AV_HNDL hndl, UINT8 *p_codec_info, BOOLEAN *p_no_rtp_hdr);
+typedef void (*tBTA_AV_CO_STOP) (tBTA_AV_HNDL hndl);
+typedef void *(*tBTA_AV_CO_DATAPATH) (const uint8_t* p_codec_info,
                                       UINT32 *p_len, UINT32 *p_timestamp);
 typedef void (*tBTA_AV_CO_DELAY) (tBTA_AV_HNDL hndl, UINT16 delay);
 
@@ -508,10 +500,6 @@ typedef struct {
     UINT16          psc_mask;
 } tBTA_AV_SNK_PSC_CFG;
 
-/* data associated with BTA_AV_INCOMING_CFG_EVT */
-typedef struct {
-    BD_ADDR         bd_addr;
-} tBTA_AV_INCOMING;
 
 #if BTA_AV_CA_INCLUDED
 
@@ -557,7 +545,6 @@ typedef union {
     tBTA_AV_RC_FEAT     rc_feat;
     tBTA_AV_DELAY       delay;
     tBTA_AV_SNK_PSC_CFG psc;
-    tBTA_AV_INCOMING    incoming;
 #if BTA_AV_CA_INCLUDED
     tBTA_AV_CA_STATUS   ca_status;
     tBTA_AV_CA_DATA     ca_data;

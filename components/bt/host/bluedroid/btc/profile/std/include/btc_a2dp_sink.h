@@ -126,6 +126,27 @@ void btc_a2dp_sink_set_rx_flush(BOOLEAN enable);
  *******************************************************************************/
 void btc_a2dp_sink_reset_decoder(UINT8 *p_av);
 
+/*******************************************************************************
+ **
+ ** Function         btc_a2dp_sink_on_memory_pressure
+ **
+ ** Description      Called by HCI layer when memory allocation fails.
+ **                  Flushes queued audio packets to free internal RAM.
+ **
+ *******************************************************************************/
+void btc_a2dp_sink_on_memory_pressure(void);
+
+/*******************************************************************************
+ **
+ ** Function         btc_a2dp_sink_get_queue_depth
+ **
+ ** Description      Get the current depth of the RX queue
+ **
+ ** Returns          Number of packets in queue, or 0 if queue not initialized
+ **
+ *******************************************************************************/
+UINT8 btc_a2dp_sink_get_queue_depth(void);
+
 #endif /* #if BTC_AV_SINK_INCLUDED */
 
 #endif /* __BTC_A2DP_SINK_H__ */
