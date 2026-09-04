@@ -199,6 +199,20 @@ void avct_lcb_chnl_open(tAVCT_LCB *p_lcb, tAVCT_LCB_EVT *p_data)
     UINT16 result = AVCT_RESULT_FAIL;
     UNUSED(p_data);
 
+    /* If an incoming L2CAP connection is already being set up (ch_state is
+     * CH_CONN or CH_CFG), don't open a new outgoing connection.
+     * L2CA_ConnectReq would overwrite ch_lcid, and the incoming connection's
+     * config callbacks (which use avct_lcb_by_lcid) would fail with
+     * "No lcb for lcid".  The state machine still transitions to OPENING_ST;
+     * when the incoming L2CAP config completes it fires LL_OPEN_EVT which
+     * moves the LCB to OPEN and connects all bound CCBs. */
+    if (p_lcb->ch_state == AVCT_CH_CONN || p_lcb->ch_state == AVCT_CH_CFG) {
+        AVCT_TRACE_WARNING("avct_lcb_chnl_open: incoming already in progress "
+                           "(ch_state=%d lcid=0x%x) — skip outgoing",
+                           p_lcb->ch_state, p_lcb->ch_lcid);
+        return;
+    }
+
     BTM_SetOutService(p_lcb->peer_addr, BTM_SEC_SERVICE_AVCTP, 0);
     /* call l2cap connect req */
     p_lcb->ch_state = AVCT_CH_CONN;

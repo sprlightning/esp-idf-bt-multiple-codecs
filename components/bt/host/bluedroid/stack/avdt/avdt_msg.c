@@ -1678,6 +1678,7 @@ void avdt_msg_ind(tAVDT_CCB *p_ccb, BT_HDR *p_buf)
     UNUSED(pkt_type);
 
     AVDT_TRACE_DEBUG("msg_type=%d, sig=%d\n", msg_type, sig);
+    AVDT_TRACE_WARNING(">>> AVDT msg_ind: label=%d msg_type=%d pkt_type=%d len=%d", label, msg_type, pkt_type, p_buf->len);
     /* set up label and ccb_idx in message hdr */
     msg.hdr.label = label;
     msg.hdr.ccb_idx = avdt_ccb_to_idx(p_ccb);
@@ -1704,6 +1705,7 @@ void avdt_msg_ind(tAVDT_CCB *p_ccb, BT_HDR *p_buf)
         /* get and verify signal */
         AVDT_MSG_PRS_SIG(p, sig);
         msg.hdr.sig_id = sig;
+        AVDT_TRACE_WARNING(">>> AVDT sig parsed: sig=%d msg_type=%d", sig, msg_type);
         if ((sig == 0) || (sig > AVDT_SIG_MAX)) {
             AVDT_TRACE_WARNING("Dropping msg sig=%d msg_type:%d\n", sig, msg_type);
             ok = FALSE;

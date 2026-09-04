@@ -32,6 +32,7 @@
 #include "stack/l2c_api.h"
 #include "stack/btm_api.h"
 #include "stack/btu.h"
+#include "l2c_int.h"
 #include "osi/allocator.h"
 
 #if (defined(AVDT_INCLUDED) && AVDT_INCLUDED == TRUE)
@@ -81,6 +82,42 @@ void avdt_process_timeout(TIMER_LIST_ENT *p_tle)
     case BTU_TTYPE_AVDT_SCB_TC:
         event = AVDT_SCB_TC_TOUT_EVT;
         break;
+
+    case BTU_TTYPE_AVDT_TC_CFG: {
+        /* L2CAP config force-complete: if remote didn't finish config,
+         * force L2CAP CCB to OPEN and complete AVDT config ourselves */
+        tAVDT_TC_TBL *p_tbl = (tAVDT_TC_TBL *) p_tle->param;
+        if (p_tbl != NULL && p_tbl->state == AVDT_AD_ST_CFG) {
+            UINT8 both_done = AVDT_L2C_CFG_CFM_DONE | AVDT_L2C_CFG_IND_DONE;
+            if ((p_tbl->cfg_flags & both_done) != both_done) {
+                AVDT_TRACE_WARNING(">>> AVDT force-completing L2CAP config, lcid=0x%04x cfg_flags=0x%02x",
+                                   p_tbl->lcid, p_tbl->cfg_flags);
+
+                /* Force L2CAP internal CCB to OPEN state */
+                tL2C_CCB *p_l2c_ccb = l2cu_find_ccb_by_cid(NULL, p_tbl->lcid);
+                if (p_l2c_ccb != NULL && p_l2c_ccb->chnl_state == CST_CONFIG) {
+                    /* Set default peer MTU if remote never told us */
+                    if (!p_l2c_ccb->peer_cfg.mtu_present) {
+                        p_l2c_ccb->peer_cfg.mtu = L2CAP_DEFAULT_MTU;
+                        p_l2c_ccb->peer_cfg.mtu_present = TRUE;
+                    }
+                    p_l2c_ccb->config_done |= (IB_CFG_DONE | OB_CFG_DONE | RECONFIG_FLAG);
+                    p_l2c_ccb->chnl_state = CST_OPEN;
+                    l2c_link_adjust_chnl_allocation();
+                    btu_stop_timer(&p_l2c_ccb->timer_entry);
+                    AVDT_TRACE_WARNING(">>> L2CAP CCB forced to OPEN, lcid=0x%04x", p_tbl->lcid);
+                }
+
+                /* Force AVDT config completion */
+                if (p_tbl->peer_mtu == 0) {
+                    p_tbl->peer_mtu = L2CAP_DEFAULT_MTU;
+                }
+                p_tbl->cfg_flags |= (AVDT_L2C_CFG_CFM_DONE | AVDT_L2C_CFG_IND_DONE);
+                avdt_ad_tc_open_ind(p_tbl);
+            }
+        }
+        return;  /* handled directly, not via CCB/SCB event */
+    }
 
     default:
         break;

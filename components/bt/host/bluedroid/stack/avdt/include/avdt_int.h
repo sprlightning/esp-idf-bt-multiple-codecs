@@ -119,6 +119,9 @@ enum {
 #define AVDT_RET_MAX            1
 #endif
 
+/* L2CAP config force-complete timeout (seconds) - if remote doesn't complete config */
+#define AVDT_TC_CFG_FORCE_TOUT  2
+
 
 /* ccb state machine states */
 enum {
@@ -532,6 +535,8 @@ typedef struct {
     UINT8   state;          /* transport channel state */
     UINT8   cfg_flags;      /* L2CAP configuration flags */
     UINT8   id;
+    TIMER_LIST_ENT  cfg_timer;       /* L2CAP config retry timer */
+    UINT8           cfg_retry_count; /* config retry counter */
 } tAVDT_TC_TBL;
 
 /* adaption layer type for stream routing table */

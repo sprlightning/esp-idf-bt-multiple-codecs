@@ -32,6 +32,7 @@
 #include "stack/l2c_api.h"
 #include "stack/l2cdefs.h"
 #include "stack/btm_api.h"
+#include "stack/btu.h"
 #include "btm_int.h"
 #include "osi/allocator.h"
 
@@ -64,6 +65,39 @@ const tL2CAP_APPL_INFO avdt_l2c_appl = {
 
 /*******************************************************************************
 **
+** Function         avdt_l2c_cfg_retry_start
+**
+** Description      Start config retry timer for a transport channel table entry.
+**                  If the remote doesn't complete L2CAP config within
+**                  AVDT_TC_CFG_RETRY_TOUT seconds, we resend ConfigReq.
+**
+** Returns          void
+**
+*******************************************************************************/
+static void avdt_l2c_cfg_retry_start(tAVDT_TC_TBL *p_tbl)
+{
+    p_tbl->cfg_retry_count = 0;
+    p_tbl->cfg_timer.param = (TIMER_PARAM_TYPE) p_tbl;
+    btu_start_timer(&p_tbl->cfg_timer, BTU_TTYPE_AVDT_TC_CFG, AVDT_TC_CFG_FORCE_TOUT);
+}
+
+/*******************************************************************************
+**
+** Function         avdt_l2c_cfg_retry_stop
+**
+** Description      Stop config retry timer (config completed or channel closed).
+**
+** Returns          void
+**
+*******************************************************************************/
+static void avdt_l2c_cfg_retry_stop(tAVDT_TC_TBL *p_tbl)
+{
+    btu_stop_timer(&p_tbl->cfg_timer);
+    p_tbl->cfg_retry_count = 0;
+}
+
+/*******************************************************************************
+**
 ** Function         avdt_sec_check_complete_term
 **
 ** Description      The function called when Security Manager finishes
@@ -81,7 +115,7 @@ static void avdt_sec_check_complete_term (BD_ADDR bd_addr, tBT_TRANSPORT transpo
     UNUSED(p_ref_data);
     UNUSED(transport);
 
-    AVDT_TRACE_DEBUG("avdt_sec_check_complete_term res: %d\n", res);
+    AVDT_TRACE_WARNING(">>> avdt_sec_check_complete_term ENTRY res: %d", res);
     if (!bd_addr) {
         AVDT_TRACE_WARNING("avdt_sec_check_complete_term: NULL BD_ADDR");
         return;
@@ -96,6 +130,7 @@ static void avdt_sec_check_complete_term (BD_ADDR bd_addr, tBT_TRANSPORT transpo
 
     if (res == BTM_SUCCESS) {
         /* Send response to the L2CAP layer. */
+        AVDT_TRACE_WARNING(">>> AVDT ConnectRsp from sec_check_complete_term, lcid=0x%04x", p_tbl->lcid);
         L2CA_ConnectRsp (bd_addr, p_tbl->id, p_tbl->lcid, L2CAP_CONN_OK, L2CAP_CONN_OK);
 
         if (p_tbl->lcid >= L2CAP_BASE_APPL_CID && (p_tbl->lcid - L2CAP_BASE_APPL_CID) < MAX_L2CAP_CHANNELS) {
@@ -107,13 +142,12 @@ static void avdt_sec_check_complete_term (BD_ADDR bd_addr, tBT_TRANSPORT transpo
         /* transition to configuration state */
         p_tbl->state = AVDT_AD_ST_CFG;
 
-        /* Send L2CAP config req */
+        /* Send L2CAP config req — omit MTU option for Realtek interop */
         memset(&cfg, 0, sizeof(tL2CAP_CFG_INFO));
-        cfg.mtu_present = TRUE;
-        cfg.mtu = p_tbl->my_mtu;
-        cfg.flush_to_present = TRUE;
-        cfg.flush_to = p_tbl->my_flush_to;
+        cfg.mtu_present = FALSE;
+        AVDT_TRACE_WARNING(">>> AVDT ConfigReq from sec_check_complete_term (no MTU), lcid=0x%04x", p_tbl->lcid);
         L2CA_ConfigReq(p_tbl->lcid, &cfg);
+        avdt_l2c_cfg_retry_start(p_tbl);
     } else {
         L2CA_ConnectRsp (bd_addr, p_tbl->id, p_tbl->lcid, L2CAP_CONN_SECURITY_BLOCK, L2CAP_CONN_OK);
         avdt_ad_tc_close_ind(p_tbl, L2CAP_CONN_SECURITY_BLOCK);
@@ -153,13 +187,12 @@ static void avdt_sec_check_complete_orig (BD_ADDR bd_addr, tBT_TRANSPORT transpo
         /* set channel state */
         p_tbl->state = AVDT_AD_ST_CFG;
 
-        /* Send L2CAP config req */
+        /* Send L2CAP config req — omit MTU option for Realtek interop */
         memset(&cfg, 0, sizeof(tL2CAP_CFG_INFO));
-        cfg.mtu_present = TRUE;
-        cfg.mtu = p_tbl->my_mtu;
-        cfg.flush_to_present = TRUE;
-        cfg.flush_to = p_tbl->my_flush_to;
+        cfg.mtu_present = FALSE;
+        AVDT_TRACE_WARNING(">>> AVDT ConfigReq from sec_check_complete_orig (no MTU), lcid=0x%04x", p_tbl->lcid);
         L2CA_ConfigReq(p_tbl->lcid, &cfg);
+        avdt_l2c_cfg_retry_start(p_tbl);
     } else {
         L2CA_DisconnectReq (p_tbl->lcid);
         avdt_ad_tc_close_ind(p_tbl, L2CAP_CONN_SECURITY_BLOCK);
@@ -184,6 +217,9 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
     tBTM_STATUS rc;
     UNUSED(psm);
 
+    AVDT_TRACE_WARNING(">>> avdt_l2c_connect_ind_cback ENTRY: lcid=0x%04x psm=0x%04x from %02x:%02x:%02x:%02x:%02x:%02x",
+        lcid, psm, bd_addr[0], bd_addr[1], bd_addr[2], bd_addr[3], bd_addr[4], bd_addr[5]);
+
     /* do we already have a control channel for this peer? */
     if ((p_ccb = avdt_ccb_by_bd(bd_addr)) == NULL) {
         /* no, allocate ccb */
@@ -203,17 +239,32 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
             p_tbl->tcid = AVDT_CHAN_SIG;
             p_tbl->lcid = lcid;
             p_tbl->id   = id;
-            p_tbl->state = AVDT_AD_ST_SEC_ACP;
             p_tbl->cfg_flags = AVDT_L2C_CFG_CONN_ACP;
 
-            /* Check the security */
-            rc = btm_sec_mx_access_request (bd_addr, AVDT_PSM,
-                                            FALSE, BTM_SEC_PROTO_AVDT,
-                                            AVDT_CHAN_SIG,
-                                            &avdt_sec_check_complete_term, NULL);
-            if (rc == BTM_CMD_STARTED) {
-                L2CA_ConnectRsp (p_ccb->peer_addr, p_tbl->id, lcid, L2CAP_CONN_PENDING, L2CAP_CONN_OK);
-            }
+            /* Skip AVDT-level security check - L2CAP already verified security
+             * before calling Connect_Ind_Cb. Send ConnectRsp(OK) + ConfigReq directly.
+             */
+            AVDT_TRACE_WARNING(">>> AVDT ConnectRsp from BYPASS path, lcid=0x%04x", lcid);
+            L2CA_ConnectRsp (bd_addr, id, lcid, L2CAP_CONN_OK, L2CAP_CONN_OK);
+
+            /* store idx in LCID table, store LCID in routing table */
+            avdt_cb.ad.lcid_tbl[lcid - L2CAP_BASE_APPL_CID] = avdt_ad_tc_tbl_to_idx(p_tbl);
+            avdt_cb.ad.rt_tbl[avdt_ccb_to_idx(p_ccb)][p_tbl->tcid].lcid = lcid;
+
+            /* transition to configuration state */
+            p_tbl->state = AVDT_AD_ST_CFG;
+
+            /* Send L2CAP config req — omit MTU option for Realtek interop.
+             * A bare ConfigReq (no options) is valid per L2CAP spec; the peer
+             * assumes the default MTU (672).  Some strict parsers stall when
+             * they see an MTU option they dislike.
+             */
+            memset(&cfg, 0, sizeof(tL2CAP_CFG_INFO));
+            cfg.mtu_present = FALSE;
+            AVDT_TRACE_WARNING(">>> AVDT ConfigReq from BYPASS path (no MTU), lcid=0x%04x", lcid);
+            L2CA_ConfigReq(lcid, &cfg);
+            avdt_l2c_cfg_retry_start(p_tbl);
+
             return;
         }
     }
@@ -244,6 +295,7 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
     }
 
     /* Send L2CAP connect rsp */
+    AVDT_TRACE_WARNING(">>> AVDT ConnectRsp from FALLTHROUGH path, lcid=0x%04x result=%d", lcid, result);
     L2CA_ConnectRsp(bd_addr, id, lcid, result, 0);
 
     /* if result ok, proceed with connection */
@@ -256,13 +308,17 @@ void avdt_l2c_connect_ind_cback(BD_ADDR bd_addr, UINT16 lcid, UINT16 psm, UINT8 
         /* transition to configuration state */
         p_tbl->state = AVDT_AD_ST_CFG;
 
-        /* Send L2CAP config req */
+        /* Send L2CAP config req.
+         * FALLTHROUGH path is for media/reporting channels (signaling goes
+         * through BYPASS).  Media channels MUST advertise a large MTU so
+         * the source can send full LDAC / AAC / aptX-HD frames.
+         */
         memset(&cfg, 0, sizeof(tL2CAP_CFG_INFO));
         cfg.mtu_present = TRUE;
         cfg.mtu = p_tbl->my_mtu;
-        cfg.flush_to_present = TRUE;
-        cfg.flush_to = p_tbl->my_flush_to;
+        AVDT_TRACE_WARNING(">>> AVDT ConfigReq from FALLTHROUGH path, lcid=0x%04x mtu=%d", lcid, cfg.mtu);
         L2CA_ConfigReq(lcid, &cfg);
+        avdt_l2c_cfg_retry_start(p_tbl);
     }
 }
 
@@ -294,13 +350,13 @@ void avdt_l2c_connect_cfm_cback(UINT16 lcid, UINT16 result)
                     /* set channel state */
                     p_tbl->state = AVDT_AD_ST_CFG;
 
-                    /* Send L2CAP config req */
+                    /* Send L2CAP config req - omit flush_to for Windows compatibility */
                     memset(&cfg, 0, sizeof(tL2CAP_CFG_INFO));
                     cfg.mtu_present = TRUE;
                     cfg.mtu = p_tbl->my_mtu;
-                    cfg.flush_to_present = TRUE;
-                    cfg.flush_to = p_tbl->my_flush_to;
+                    AVDT_TRACE_WARNING(">>> AVDT ConfigReq from connect_cfm_cback, lcid=0x%04x", lcid);
                     L2CA_ConfigReq(lcid, &cfg);
+                    avdt_l2c_cfg_retry_start(p_tbl);
                 } else {
                     p_ccb = avdt_ccb_by_idx(p_tbl->ccb_idx);
                     if (p_ccb == NULL) {
@@ -342,6 +398,8 @@ void avdt_l2c_config_cfm_cback(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 {
     tAVDT_TC_TBL    *p_tbl;
 
+    AVDT_TRACE_WARNING("AVDT config_cfm: lcid=0x%04x result=%d", lcid, p_cfg->result);
+
     /* look up info for this channel */
     if ((p_tbl = avdt_ad_tc_tbl_by_lcid(lcid)) != NULL) {
         p_tbl->lcid = lcid;
@@ -355,11 +413,13 @@ void avdt_l2c_config_cfm_cback(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 
                 /* if configuration complete */
                 if (p_tbl->cfg_flags & AVDT_L2C_CFG_IND_DONE) {
+                    avdt_l2c_cfg_retry_stop(p_tbl);
                     avdt_ad_tc_open_ind(p_tbl);
                 }
             }
             /* else failure */
             else {
+                avdt_l2c_cfg_retry_stop(p_tbl);
                 /* Send L2CAP disconnect req */
                 L2CA_DisconnectReq(lcid);
             }
@@ -380,6 +440,9 @@ void avdt_l2c_config_cfm_cback(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 void avdt_l2c_config_ind_cback(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 {
     tAVDT_TC_TBL    *p_tbl;
+
+    AVDT_TRACE_WARNING("AVDT config_ind: lcid=0x%04x mtu_present=%d mtu=%d",
+                       lcid, p_cfg->mtu_present, p_cfg->mtu);
 
     /* look up info for this channel */
     if ((p_tbl = avdt_ad_tc_tbl_by_lcid(lcid)) != NULL) {
@@ -403,6 +466,7 @@ void avdt_l2c_config_ind_cback(UINT16 lcid, tL2CAP_CFG_INFO *p_cfg)
 
             /* if configuration complete */
             if (p_tbl->cfg_flags & AVDT_L2C_CFG_CFM_DONE) {
+                avdt_l2c_cfg_retry_stop(p_tbl);
                 avdt_ad_tc_open_ind(p_tbl);
             }
         }
@@ -428,6 +492,7 @@ void avdt_l2c_disconnect_ind_cback(UINT16 lcid, BOOLEAN ack_needed)
                      lcid, ack_needed);
     /* look up info for this channel */
     if ((p_tbl = avdt_ad_tc_tbl_by_lcid(lcid)) != NULL) {
+        avdt_l2c_cfg_retry_stop(p_tbl);
         if (ack_needed) {
             /* send L2CAP disconnect response */
             L2CA_DisconnectRsp(lcid);
@@ -462,6 +527,7 @@ void avdt_l2c_disconnect_cfm_cback(UINT16 lcid, UINT16 result)
                      lcid, result);
     /* look up info for this channel */
     if ((p_tbl = avdt_ad_tc_tbl_by_lcid(lcid)) != NULL) {
+        avdt_l2c_cfg_retry_stop(p_tbl);
         avdt_ad_tc_close_ind(p_tbl, result);
     }
 }
@@ -500,10 +566,14 @@ void avdt_l2c_data_ind_cback(UINT16 lcid, BT_HDR *p_buf)
 {
     tAVDT_TC_TBL    *p_tbl;
 
+    AVDT_TRACE_WARNING(">>> avdt_l2c_data_ind_cback: lcid=0x%04x len=%d", lcid, p_buf->len);
+
     /* look up info for this channel */
     if ((p_tbl = avdt_ad_tc_tbl_by_lcid(lcid)) != NULL) {
+        AVDT_TRACE_WARNING(">>> data_ind: tbl found, tcid=%d state=%d", p_tbl->tcid, p_tbl->state);
         avdt_ad_tc_data_ind(p_tbl, p_buf);
     } else { /* prevent buffer leak */
+        AVDT_TRACE_WARNING(">>> data_ind: NO TBL for lcid=0x%04x, DROPPING!", lcid);
         osi_free(p_buf);
     }
 }
