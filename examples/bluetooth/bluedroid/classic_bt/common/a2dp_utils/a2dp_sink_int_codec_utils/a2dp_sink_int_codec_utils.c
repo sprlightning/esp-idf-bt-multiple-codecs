@@ -60,6 +60,11 @@ void bt_a2d_evt_int_codec_hdl(uint16_t event, void *param)
         ESP_LOGI(BT_AV_TAG, "A2DP audio state: %s", s_a2d_audio_state_str[a2d->audio_stat.state]);
         if (ESP_A2D_AUDIO_STATE_STARTED == a2d->audio_stat.state) {
             s_pkt_cnt = 0;
+            audio_sink_srv_start();   /* (re)enable I2S output on stream start/resume */
+        } else {
+            /* Suspended/stopped (fires ~100 ms before disconnect): stop I2S output
+             * and clear any buffered audio immediately so nothing residual plays. */
+            audio_sink_srv_stop();
         }
         break;
     }
@@ -79,8 +84,10 @@ void bt_a2d_data_hdl(const uint8_t *data, uint32_t len)
 {
     audio_sink_srv_data_output(data, len);
 
-    /* log the number every 100 packets */
-    if (++s_pkt_cnt % 100 == 0) {
+    /* This runs in the A2DP_DECODER task. At 192k (~200 pkt/s) an every-100 log is
+     * 2 UART writes/s that block decode on the log lock; every 1000 keeps a ~5 s
+     * heartbeat without stealing real-time decode budget. */
+    if (++s_pkt_cnt % 1000 == 0) {
         ESP_LOGI(BT_AV_TAG, "Audio packet count: %"PRIu32, s_pkt_cnt);
     }
 }

@@ -21,7 +21,7 @@
 #include "a2dp_utils_tags.h"
 
 /* Application layer causes delay value */
-#define APP_DELAY_VALUE                  50  // 5ms
+#define APP_DELAY_VALUE                  1500  // 150ms — deep sink delay so phones pace hi-res (LDAC 96k) sending smoothly (matches old project)
 
 /*******************************
  * STATIC VARIABLE DEFINITIONS
