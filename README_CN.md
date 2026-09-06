@@ -4,6 +4,47 @@
 
 ESP-IDF 是乐鑫官方推出的物联网开发框架，支持 Windows、Linux 和 macOS 操作系统。
 
+# 支持的解码器
+
+| Codec | Rates / depth | Notes |
+|-------|---------------|-------|
+| **[LDAC](https://github.com/cfint/libldac-dec/tree/esp32)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
+| **[LHDC V5](https://github.com/sprlightning/LHDC-V5-Decoder/tree/esp32-d0wd)** | up to 192 kHz / 24-bit | 400–1000 kbps |
+| **[aptX / aptX-HD / aptX-LL](https://github.com/cfint/libfreeaptx-esp/tree/master)** | up to 48 kHz / 24-bit | |
+| **[Opus](https://github.com/xiph/opus/tree/main)** | 48 kHz | |
+| **[LC3plus](https://github.com/cfint/liblc3/tree/esp32)** | up to 96 kHz | |
+| **[AAC-LC](https://github.com/WillyBilly06/ESP32-S31-A2DP-Codecs/tree/main/esp-idf-v6.1-codecs/components/bt/host/bluedroid/external/libaac-lc)** | up to 48 kHz | based on libhelix-aac by WillyBilly06 |
+| **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
+
+> 注意: 此分支不需要 PSRAM. 使用 PSRAM 的分支是 [a2dp-codecs/v5.1.4](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v5.1.4) .
+
+# 贡献
+
+| User | Contributions |
+|------|---------------|
+| **[cfint](https://github.com/cfint)** | 首次将多个解码器从AOSP移植到ESP‑IDF |
+| **[O2C14](https://github.com/O2C14)** | 独立实现并开源了LDAC解码器的源代码 |
+| **[WillyBilly06](https://github.com/WillyBilly06)** | 独立实现并开源了LHDC V5解码器的源代码；使用正确的方式将 cfint 的 v5.1.4 的蓝牙组件合并到乐鑫较新的 esp-idf v5.5.2 和 v6.1.0 框架中 |
+| **[sprlightning](https://github.com/sprlightning)** | 资源整合；仓库 rebase |
+
+# 如何使用
+
+首先克隆该仓库，然后执行 `git submodule update --init --recursive`。
+
+## 示例 Demo
+
+示例demo是 [MLX_Player_ClassicBT/tree/dev/v6.1.0](https://github.com/sprlightning/MLX_Player_ClassicBT/tree/dev/v6.1.0) , 它也证明了 **esp32-d0wd 可以对 LHDC V5 在 192kHz/24bit 进行解码，且 0 卡顿 0 pop** 。更多细节请访问 [disscussion](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/discussions) 。
+
+> 示例 demo 使用 ESP32-CAM 模块 (也叫做 ESP-32S, 芯片是 esp32-d0wd, 4MB Flash, 8MB PSRAM) ，并使用一个 PCM5102A DAC 模块。
+
+![](figures/esp32cam_pcm512a.jpg)
+
+# 如何切换解码器
+
+使用 [Bluetooth Codec Changer](https://play.google.com/store/apps/details?id=com.amrg.bluetooth_codec_converter)。
+
+![](figures/BluetoothCodecChanger.jpg)
+
 # ESP-IDF 版本支持期限
 
 ![支持期限](https://dl.espressif.com/dl/esp-idf/support-periods.svg?v=1)
