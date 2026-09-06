@@ -9,7 +9,7 @@ ESP-IDF is the development framework for Espressif SoCs supported on Windows, Li
 | Codec | Rates / depth | Notes |
 |-------|---------------|-------|
 | **[LDAC](https://github.com/cfint/libldac-dec/tree/esp32)** | up to 96 kHz / 32-bit | 660 / 909 / 990 kbps |
-| **[LHDC V5](https://github.com/sprlightning/LHDC-V5-Decoder/tree/esp32-d0wd)** | up to 192 kHz / 24-bit | 400–1000 kbps, 192kHz is hard to decode in ESP32-D0WD |
+| **[LHDC V5](https://github.com/sprlightning/LHDC-V5-Decoder/tree/esp32-d0wd)** | up to 192 kHz / 24-bit | 400–1000 kbps |
 | **[aptX / aptX-HD / aptX-LL](https://github.com/cfint/libfreeaptx-esp/tree/master)** | up to 48 kHz / 24-bit | |
 | **[Opus](https://github.com/xiph/opus/tree/main)** | 48 kHz | |
 | **[LC3plus](https://github.com/cfint/liblc3/tree/esp32)** | up to 96 kHz | |
@@ -22,6 +22,10 @@ ESP-IDF is the development framework for Espressif SoCs supported on Windows, Li
 |----------|-------|
 | AVRCP Absolute Volume Control | Bidirectional Absolute Volume Control, ported from ESP-IDF V5.1.6 |
 | AVRCP Coverart Display | Receive and display album coverart images sent by A2DP Source devices such as mobile phones, ported from ESP-IDF V6.1.0 & V5.5.2 |
+
+> WARNING: This branch needs PSRAM. If you are find a internal way, you can use the branch [a2dp-codecs/v6.1.0](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v6.1.0) .
+
+![](figures/test_lhdcv5_192kHz.jpg)
 
 # Contributions
 
@@ -36,11 +40,19 @@ ESP-IDF is the development framework for Espressif SoCs supported on Windows, Li
 
 First clone this repository, and then run `git submodule update --init --recursive`.
 
+## Example Demo
+
+The example demo is [MLX_Player_ClassicBT/tree/dev/v5.1.4](https://github.com/sprlightning/MLX_Player_ClassicBT/tree/dev/v5.1.4) , it proves **esp32-d0wd can decode LHDC V5 at 192kHz/24bit with 0 stuck and 0 pop**. More details please visit the [disscussion](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/discussions) .
+
+> Example demo use the ESP32-CAM module (also called ESP-32S, chip is esp32-d0wd, 4MB Flash, 8MB PSRAM) with PCM5102A DAC module.
+
+![](figures/esp32cam_pcm512a.jpg)
+
 # How to Switch Codecs
 
 Use [Bluetooth Codec Changer](https://play.google.com/store/apps/details?id=com.amrg.bluetooth_codec_converter).
 
-![](BluetoothCodecChanger.jpg)
+![](figures/BluetoothCodecChanger.jpg)
 
 # ESP-IDF Release Support Schedule
 
