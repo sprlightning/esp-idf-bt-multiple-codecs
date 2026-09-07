@@ -129,6 +129,8 @@ static btc_av_cb_t *btc_av_cb_ptr = NULL;
     case BTA_AV_META_MSG_EVT: \
     case BTA_AV_RC_FEAT_EVT: \
     case BTA_AV_REMOTE_RSP_EVT: \
+    case BTA_AV_CA_STATUS_EVT: \
+    case BTA_AV_CA_DATA_EVT: \
     { \
          btc_rc_handler(e, d);\
     }break; \
