@@ -888,9 +888,8 @@ typedef union {
 #define AVRC_IS_VALID_ATTRIBUTE(a)          (((((a > 0) && a <= AVRC_PLAYER_SETTING_SCAN)) || \
                           (a >= AVRC_PLAYER_SETTING_LOW_MENU_EXT)) ? TRUE : FALSE)
 
-#define AVRC_IS_VALID_MEDIA_ATTRIBUTE(a)    ((((a >= AVRC_MEDIA_ATTR_ID_TITLE) && \
-                                               (a <= AVRC_MEDIA_ATTR_ID_PLAYING_TIME)) || \
-                                               (a == AVRC_MEDIA_ATTR_ID_COVER_ART)) ? TRUE : FALSE)
+#define AVRC_IS_VALID_MEDIA_ATTRIBUTE(a)    ((a >= AVRC_MEDIA_ATTR_ID_TITLE) && \
+                                             (a <= AVRC_MEDIA_ATTR_ID_COVER_ART) ? TRUE : FALSE)
 
 #define AVRC_IS_VALID_BATTERY_STATUS(a)    ((a <= AVRC_BATTERY_STATUS_FULL_CHARGE) ? TRUE : FALSE)
 
@@ -975,7 +974,7 @@ typedef struct {
 typedef struct {
     UINT32              attr_id;        /* Use AVRC_MEDIA_ATTR_ID_TITLE, AVRC_MEDIA_ATTR_ID_ARTIST, AVRC_MEDIA_ATTR_ID_ALBUM,
                                            AVRC_MEDIA_ATTR_ID_TRACK_NUM, AVRC_MEDIA_ATTR_ID_NUM_TRACKS,
-                                           AVRC_MEDIA_ATTR_ID_GENRE, AVRC_MEDIA_ATTR_ID_PLAYING_TIME */
+                                           AVRC_MEDIA_ATTR_ID_GENRE, AVRC_MEDIA_ATTR_ID_PLAYING_TIME, AVRC_MEDIA_ATTR_ID_COVER_ART */
     tAVRC_FULL_NAME     name;           /* The attribute value, value length and character set id. */
 } tAVRC_ATTR_ENTRY;
 
