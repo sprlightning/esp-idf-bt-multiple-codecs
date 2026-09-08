@@ -24,8 +24,8 @@ static const tA2DP_LDAC_CIE a2dp_ldac_source_caps = {
      A2DP_LDAC_SAMPLING_FREQ_88200 | A2DP_LDAC_SAMPLING_FREQ_96000),
     // channelMode
     (A2DP_LDAC_CHANNEL_MODE_DUAL | A2DP_LDAC_CHANNEL_MODE_STEREO),
-    // bits_per_sample
-    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16};
+    // bits_per_sample - Set 32bit as default
+    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_32};
 
 /* LDAC Sink codec capabilities */
 static const tA2DP_LDAC_CIE a2dp_ldac_sink_caps = {
@@ -37,8 +37,8 @@ static const tA2DP_LDAC_CIE a2dp_ldac_sink_caps = {
     // channelMode
     (A2DP_LDAC_CHANNEL_MODE_MONO | A2DP_LDAC_CHANNEL_MODE_DUAL |
      A2DP_LDAC_CHANNEL_MODE_STEREO),
-    // bits_per_sample
-    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16};
+    // bits_per_sample - Set 32bit as default
+    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_32};
 
 /* Default LDAC codec configuration */
 static const tA2DP_LDAC_CIE a2dp_ldac_default_config = {
@@ -46,7 +46,7 @@ static const tA2DP_LDAC_CIE a2dp_ldac_default_config = {
     A2DP_LDAC_CODEC_ID,                 // codecId
     A2DP_LDAC_SAMPLING_FREQ_48000,      // sampleRate
     A2DP_LDAC_CHANNEL_MODE_STEREO,      // channelMode
-    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_16  // bits_per_sample
+    BTAV_A2DP_CODEC_BITS_PER_SAMPLE_32  // bits_per_sample - Set 32bit as default
 };
 
 static const tA2DP_DECODER_INTERFACE a2dp_decoder_interface_ldac = {

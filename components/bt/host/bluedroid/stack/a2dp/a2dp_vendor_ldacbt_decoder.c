@@ -36,7 +36,7 @@ bool a2dp_ldac_decoder_init(decoded_data_callback_t decode_callback) {
 
     a2dp_ldac_decoder_cb.ldac_handle = hndl;
     a2dp_ldac_decoder_cb.has_ldac_handle = true;
-    a2dp_ldac_decoder_cb.pcm_fmt = LDACBT_SMPL_FMT_S24;
+    a2dp_ldac_decoder_cb.pcm_fmt = LDACBT_SMPL_FMT_S32;	//  Set 32bit as default
     a2dp_ldac_decoder_cb.decode_callback = decode_callback;
     return true;
 }
