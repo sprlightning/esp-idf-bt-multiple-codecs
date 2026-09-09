@@ -16,7 +16,13 @@ ESP-IDF is the development framework for Espressif SoCs supported on Windows, Li
 | **[AAC-LC](https://github.com/WillyBilly06/ESP32-S31-A2DP-Codecs/tree/main/esp-idf-v6.1-codecs/components/bt/host/bluedroid/external/libaac-lc)** | up to 48 kHz | based on libhelix-aac by WillyBilly06 |
 | **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
 
-> WARNING: This branch do not needs PSRAM. The branch that needs PSRAM is [a2dp-codecs/v5.1.4](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v5.1.4) .
+> **WARNING**:   
+> - This branch does not depend on PSRAM. A2DP_DECODER occupies 20KB DRAM, and decode_buf occupies 15.6KB DRAM.  
+> - **For this branch, the app's I2S ringbuffer can only be placed in DRAM, because placing it in PSRAM will cause pops at 192kHz immediately**.  
+> - App can use CONFIG_COMPILER_OPTIMIZATION_SIZE=y, it is no problem, but recommand option is CONFIG_COMPILER_OPTIMIZATION_PERF=y.  
+> - The branch dependent on PSRAM is [a2dp-codecs/v5.1.4](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v5.1.4) , and the I2S ringbuffer of its app can be placed in either DRAM or PSRAM without issues.  
+
+![](figures/test_lhdcv5_192kHz_dram.jpg)
 
 # Contributions
 

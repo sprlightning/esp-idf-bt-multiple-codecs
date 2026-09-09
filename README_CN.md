@@ -16,7 +16,11 @@ ESP-IDF 是乐鑫官方推出的物联网开发框架，支持 Windows、Linux �
 | **[AAC-LC](https://github.com/WillyBilly06/ESP32-S31-A2DP-Codecs/tree/main/esp-idf-v6.1-codecs/components/bt/host/bluedroid/external/libaac-lc)** | up to 48 kHz | based on libhelix-aac by WillyBilly06 |
 | **[SBC](components/bt/host/bluedroid/external/sbc)** | 44.1 / 48 kHz | stock baseline |
 
-> 注意: 此分支不需要 PSRAM. 使用 PSRAM 的分支是 [a2dp-codecs/v5.1.4](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v5.1.4) .
+> **注意**:   
+> - 此分支不依赖PSRAM。A2DP_DECODER 占用20KB DRAM，decode_buf 占用 15.6KB DRAM。  
+> - 对于该分支，app 的 I2S ringbuffer 只能放在 DRAM 中，因为放到 PSRAM 会在 192kHz 立即出现 pop。  
+> - App 可以使用 CONFIG_COMPILER_OPTIMIZATION_SIZE=y，该配置没有问题，但推荐选项为 CONFIG_COMPILER_OPTIMIZATION_PERF=y。  
+> - 依赖 PSRAM 的分支是 [a2dp-codecs/v5.1.4](https://github.com/sprlightning/esp-idf-bt-multiple-codecs/tree/a2dp-codecs/v5.1.4) ，它的 app 的 I2S ringbuffer 放在 DRAM/PSRAM都没问题。  
 
 # 贡献
 
